@@ -1,0 +1,20 @@
+def build_handoff(problem: dict, requirement: dict, recommendation: dict, readiness: dict, audit: list[dict]) -> dict:
+    return {
+        "title": "PROCUREMENT HANDOFF PACK",
+        "watermark": "PRAMAN DEMO — SIMULATED DATA",
+        "notice": "This is a handoff package, not an award decision.",
+        "problem_statement": problem,
+        "approved_requirement": requirement,
+        "selected_solution": recommendation["startup"],
+        "eligibility_evidence": recommendation["eligibility"],
+        "evaluation_summary": recommendation["dimensions"],
+        "pilot_methodology": "90-day controlled municipal bus-fleet pilot in Pune.",
+        "kpi_results": ["Detection Recall 94.2%", "Cost Efficiency −27%", "Reliability 96%", "False Positive Rate 10%"],
+        "evidence_index": ["Detection_Report_May.pdf", "Field_Photos_Sample.zip", "KPI_Summary_May.xlsx", "Security_Assessment.pdf", "User_Feedback.pdf"],
+        "procurement_readiness": readiness,
+        "blockers": [readiness["blocker"]],
+        "suggested_procurement_language": "Road damage detection and geotagged alerting solution for controlled procurement review.",
+        "suggested_gem_category": "IT consulting / AI-based inspection support (suggested, simulated)",
+        "audit_trail": audit,
+        "data_class": "SIMULATED",
+    }

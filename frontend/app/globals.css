@@ -1,0 +1,60 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+  --ink: #0a1628;
+  --paper: #f5f3ee;
+  --signal: #1b7a6e;
+  --amber: #c17a2e;
+  --critical: #a33a3a;
+  --line: #d8d3c7;
+  --mist: #ece9e1;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: Inter, Arial, sans-serif;
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+}
+
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible {
+  outline: 3px solid rgba(27, 122, 110, 0.35);
+  outline-offset: 2px;
+}
+
+.trace-link {
+  border: 0;
+  border-bottom: 1px solid var(--signal);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  padding: 0 0 1px;
+  position: relative;
+}
+
+.trace-link::after {
+  content: "";
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--signal);
+  position: absolute;
+  right: -8px;
+  bottom: -3px;
+}
