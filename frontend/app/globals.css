@@ -1,60 +1,69 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
   color-scheme: light;
-  --ink: #0a1628;
-  --paper: #f5f3ee;
-  --signal: #1b7a6e;
-  --amber: #c17a2e;
-  --critical: #a33a3a;
-  --line: #d8d3c7;
-  --mist: #ece9e1;
+  --ink: #0f172a;
+  --paper: #f8fafc;
+  --signal: #168675;
+  --signal-dark: #116f62;
+  --amber: #d97706;
+  --critical: #dc2626;
+  --line: #e2e8f0;
+  --mist: #f1f5f9;
+  --sidebar-bg: #062b27;
+  --sidebar-accent: #168675;
 }
 
-* {
+*, *::before, *::after {
   box-sizing: border-box;
+}
+
+html {
+  font-size: 15px;
 }
 
 body {
   margin: 0;
   background: var(--paper);
   color: var(--ink);
-  font-family: Inter, Arial, sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  line-height: 1.5;
 }
 
-button,
-input,
-textarea {
+button, input, textarea, select {
   font: inherit;
 }
 
 button:focus-visible,
 input:focus-visible,
 textarea:focus-visible,
+select:focus-visible,
 [tabindex]:focus-visible {
-  outline: 3px solid rgba(27, 122, 110, 0.35);
+  outline: 2px solid var(--signal);
   outline-offset: 2px;
 }
 
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+/* Trace link */
 .trace-link {
   border: 0;
-  border-bottom: 1px solid var(--signal);
+  border-bottom: 1.5px solid var(--signal);
   background: transparent;
-  color: inherit;
+  color: var(--signal);
   cursor: pointer;
   padding: 0 0 1px;
-  position: relative;
+  font-weight: 600;
 }
 
-.trace-link::after {
-  content: "";
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: var(--signal);
-  position: absolute;
-  right: -8px;
-  bottom: -3px;
+.trace-link:hover {
+  color: var(--signal-dark);
 }
