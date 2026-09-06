@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useMemo, type ReactNode } from "react";
+import React, { createContext, useContext, useState, useEffect, useMemo, type ReactNode } from "react";
 import { api } from "./api";
 import type { AuditEvent, Problem, Recommendation } from "@/types/praman";
 import type { TracePayload } from "@/components/EvidenceTrace";
@@ -42,6 +42,18 @@ interface PramanContextType {
   loading: string;
   error: string;
   currentStage: number;
+  // New state slices
+  implementation: Record<string, any> | null;
+  monitoring: Record<string, any>[];
+  outcome: Record<string, any> | null;
+  lessons: Record<string, any>[];
+  memory: Record<string, any>[];
+  memorySearchQuery: string;
+  setMemorySearchQuery: (v: string) => void;
+  riskRadar: Record<string, any>[];
+  decisionReplay: Record<string, any> | null;
+  modelVersions: Record<string, any>[];
+  // Existing actions
   login: () => Promise<void>;
   launchDemo: () => Promise<void>;
   structure: () => Promise<void>;
@@ -54,6 +66,14 @@ interface PramanContextType {
   generateHandoff: () => Promise<void>;
   requestConsent: (id: string) => Promise<void>;
   logout: () => void;
+  // New actions
+  initImplementation: () => Promise<void>;
+  resolveBlocker: (taskId: string) => Promise<void>;
+  updateTaskStatus: (taskId: string, status: string) => Promise<void>;
+  addMonitoringRecord: (record: any) => Promise<void>;
+  searchMemory: (q: string) => Promise<void>;
+  loadAllModuleData: () => Promise<void>;
+  authInitialized: boolean;
 }
 
 const PramanContext = createContext<PramanContextType | null>(null);
@@ -63,7 +83,28 @@ export function PramanProvider({ children }: { children: ReactNode }) {
   const [password, setPassword] = useState("demo123");
   const [mfa, setMfa] = useState("123456");
 
-  const [user, setUser] = useState<Record<string, any> | null>(null);
+  const [user, setUserState] = useState<Record<string, any> | null>(null);
+  const [authInitialized, setAuthInitialized] = useState(false);
+
+  useEffect(() => {
+    const savedUser = localStorage.getItem("praman_user");
+    if (savedUser) {
+      try {
+        setUserState(JSON.parse(savedUser));
+      } catch (e) { }
+    }
+    setAuthInitialized(true);
+  }, []);
+
+  function setUser(newUser: Record<string, any> | null) {
+    setUserState(newUser);
+    if (newUser) {
+      localStorage.setItem("praman_user", JSON.stringify(newUser));
+    } else {
+      localStorage.removeItem("praman_user");
+    }
+  }
+
   const [problem, setProblem] = useState<Problem | null>(null);
   const [requirement, setRequirement] = useState<Requirement | null>(null);
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
@@ -81,7 +122,21 @@ export function PramanProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState("");
   const [error, setError] = useState("");
 
+  // ── New state slices ──────────────────────────────────────────────────────
+  const [implementation, setImplementation] = useState<Record<string, any> | null>(null);
+  const [monitoring, setMonitoring] = useState<Record<string, any>[]>([]);
+  const [outcome, setOutcome] = useState<Record<string, any> | null>(null);
+  const [lessons, setLessons] = useState<Record<string, any>[]>([]);
+  const [memory, setMemory] = useState<Record<string, any>[]>([]);
+  const [memorySearchQuery, setMemorySearchQuery] = useState("");
+  const [riskRadar, setRiskRadar] = useState<Record<string, any>[]>([]);
+  const [decisionReplay, setDecisionReplay] = useState<Record<string, any> | null>(null);
+  const [modelVersions, setModelVersions] = useState<Record<string, any>[]>([]);
+
   const currentStage = useMemo(() => {
+    if (memory.length > 0) return 9;
+    if (outcome) return 8;
+    if (implementation) return 7;
     if (scale && handoff) return 6;
     if (handoff) return 5;
     if (readiness) return 4;
@@ -89,7 +144,7 @@ export function PramanProvider({ children }: { children: ReactNode }) {
     if (recommendations.length) return 2;
     if (requirement) return 1;
     return 0;
-  }, [handoff, pilot, readiness, recommendations.length, requirement, scale]);
+  }, [handoff, implementation, memory.length, outcome, pilot, readiness, recommendations.length, requirement, scale]);
 
   async function run<T>(label: string, action: () => Promise<T>) {
     setLoading(label);
@@ -143,7 +198,34 @@ export function PramanProvider({ children }: { children: ReactNode }) {
       setHandoff(null);
       const scaleResult = await api<Record<string, any>>("/api/v1/scale-recommendations/startup-skyline");
       setScale(scaleResult);
+      // Load all new module data
+      await loadAllModuleDataInternal();
     });
+  }
+
+  async function loadAllModuleDataInternal() {
+    const [implResult, monResult, outcomeResult, lessonsResult, memResult, riskResult, replayResult, modelsResult] = await Promise.allSettled([
+      api<Record<string, any>>("/api/v1/implementation/1042"),
+      api<{ items: Record<string, any>[] }>("/api/v1/monitoring/1042"),
+      api<Record<string, any>>("/api/v1/outcomes/1042"),
+      api<{ items: Record<string, any>[] }>("/api/v1/lessons/1042"),
+      api<{ items: Record<string, any>[] }>("/api/v1/institutional-memory"),
+      api<{ items: Record<string, any>[] }>("/api/v1/risk-radar/1042"),
+      api<Record<string, any>>("/api/v1/decision-replay/replay-1042"),
+      api<{ items: Record<string, any>[] }>("/api/v1/model-versions"),
+    ]);
+    if (implResult.status === "fulfilled") setImplementation(implResult.value);
+    if (monResult.status === "fulfilled") setMonitoring(monResult.value.items);
+    if (outcomeResult.status === "fulfilled") setOutcome(outcomeResult.value);
+    if (lessonsResult.status === "fulfilled") setLessons(lessonsResult.value.items);
+    if (memResult.status === "fulfilled") setMemory(memResult.value.items);
+    if (riskResult.status === "fulfilled") setRiskRadar(riskResult.value.items);
+    if (replayResult.status === "fulfilled") setDecisionReplay(replayResult.value);
+    if (modelsResult.status === "fulfilled") setModelVersions(modelsResult.value.items);
+  }
+
+  async function loadAllModuleData() {
+    await run("Loading PRAMAN intelligence modules", loadAllModuleDataInternal);
   }
 
   async function structure() {
@@ -220,6 +302,60 @@ export function PramanProvider({ children }: { children: ReactNode }) {
     );
   }
 
+  // ── New actions ───────────────────────────────────────────────────────────
+
+  async function initImplementation() {
+    const result = await run("Initializing implementation plan", () =>
+      api<Record<string, any>>("/api/v1/implementation/1042", { method: "POST" })
+    );
+    if (result) setImplementation(result);
+  }
+
+  async function resolveBlocker(taskId: string) {
+    const result = await run("Resolving blocker", () =>
+      api<Record<string, any>>(`/api/v1/implementation/1042/tasks/${taskId}/resolve-blocker`, { method: "PATCH" })
+    );
+    if (result) {
+      // Reload implementation to get updated task statuses
+      const updated = await api<Record<string, any>>("/api/v1/implementation/1042").catch(() => null);
+      if (updated) setImplementation(updated);
+    }
+  }
+
+  async function updateTaskStatus(taskId: string, status: string) {
+    const result = await run("Updating task", () =>
+      api<Record<string, any>>(`/api/v1/implementation/1042/tasks/${taskId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ status }),
+      })
+    );
+    if (result) {
+      const updated = await api<Record<string, any>>("/api/v1/implementation/1042").catch(() => null);
+      if (updated) setImplementation(updated);
+    }
+  }
+
+  async function addMonitoringRecord(record: any) {
+    const result = await run("Adding monitoring record", () =>
+      api<Record<string, any>>("/api/v1/monitoring/1042", {
+        method: "POST",
+        body: JSON.stringify(record),
+      })
+    );
+    if (result) {
+      const updated = await api<{ items: Record<string, any>[] }>("/api/v1/monitoring/1042").catch(() => null);
+      if (updated) setMonitoring(updated.items);
+    }
+  }
+
+  async function searchMemory(q: string) {
+    setMemorySearchQuery(q);
+    const result = await run("Searching institutional memory", () =>
+      api<{ items: Record<string, any>[]; has_failed_match?: boolean }>(`/api/v1/institutional-memory/search?q=${encodeURIComponent(q)}`)
+    );
+    if (result) setMemory(result.items);
+  }
+
   return (
     <PramanContext.Provider
       value={{
@@ -227,8 +363,17 @@ export function PramanProvider({ children }: { children: ReactNode }) {
         user, problem, requirement, recommendations, pilot, readiness,
         decisionReason, setDecisionReason, decision, handoff, scale,
         audit, health, trace, setTrace, loading, error, currentStage,
+        authInitialized,
+        // New state
+        implementation, monitoring, outcome, lessons, memory,
+        memorySearchQuery, setMemorySearchQuery,
+        riskRadar, decisionReplay, modelVersions,
+        // Existing actions
         login, logout, launchDemo, structure, approve, matchStartups, shortlist,
-        fastForward, calculateReadiness, submitDecision, generateHandoff, requestConsent
+        fastForward, calculateReadiness, submitDecision, generateHandoff, requestConsent,
+        // New actions
+        initImplementation, resolveBlocker, updateTaskStatus,
+        addMonitoringRecord, searchMemory, loadAllModuleData,
       }}
     >
       {children}
@@ -241,3 +386,4 @@ export function usePraman() {
   if (!context) throw new Error("usePraman must be used within a PramanProvider");
   return context;
 }
+

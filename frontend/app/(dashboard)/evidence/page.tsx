@@ -1,91 +1,237 @@
 "use client";
 
 import { usePraman } from "@/lib/PramanContext";
-import { Panel, Empty } from "@/components/ui";
+import { Panel, Empty, VerificationBadge } from "@/components/ui";
 import { Badge } from "@/components/Badge";
-import { FileCheck2, ShieldCheck, CheckCircle2, ExternalLink } from "lucide-react";
+import { FileCheck2, ShieldCheck, CheckCircle2, AlertTriangle, Hash } from "lucide-react";
 
-const CATEGORY_COLORS: Record<string, string> = {
-  Technical: "bg-blue-50 text-blue-700 border-blue-200",
-  Performance: "bg-purple-50 text-purple-700 border-purple-200",
-  Commercial: "bg-green-50 text-green-700 border-green-200",
-  Security: "bg-amber-50 text-amber-700 border-amber-200",
-  "User Feedback": "bg-pink-50 text-pink-700 border-pink-200",
+const EVIDENCE_DATA = [
+  {
+    recordId: "EVID-MH-2026-001",
+    name: "Detection_Report_May.pdf",
+    category: "Technical",
+    type: "PDF",
+    source: "PWD Maharashtra / Pilot Evaluator",
+    uploader: "Pilot Evaluator",
+    date: "2026-05-28",
+    verificationLevel: "VERIFIED" as const,
+    verificationNote: "Independently checked by designated evaluator",
+    confidence: "94%",
+    kpi: "Detection Recall",
+    hash: "8F3A...001",
+  },
+  {
+    recordId: "EVID-MH-2026-002",
+    name: "Field_Photos_Sample.zip",
+    category: "Performance",
+    type: "ZIP",
+    source: "SkylineAI Field Team",
+    uploader: "Field Team",
+    date: "2026-05-29",
+    verificationLevel: "PARTIALLY VERIFIED" as const,
+    verificationNote: "Sample of 200 photos reviewed; full dataset not audited",
+    confidence: "78%",
+    kpi: "False Positive Rate",
+    hash: "2C1B...002",
+  },
+  {
+    recordId: "EVID-MH-2026-003",
+    name: "KPI_Summary_May.xlsx",
+    category: "Commercial",
+    type: "XLSX",
+    source: "PWD Evaluator",
+    uploader: "Evaluator",
+    date: "2026-05-30",
+    verificationLevel: "VERIFIED" as const,
+    verificationNote: "KPI figures independently recomputed from raw logs",
+    confidence: "96%",
+    kpi: "Cost Efficiency",
+    hash: "A4F7...003",
+  },
+  {
+    recordId: "EVID-MH-2026-004",
+    name: "Security_Assessment.pdf",
+    category: "Security",
+    type: "PDF",
+    source: "CISO / IT Security",
+    uploader: "CISO",
+    date: "2026-05-30",
+    verificationLevel: "PARTIALLY VERIFIED" as const,
+    verificationNote: "80% complete — penetration testing outstanding",
+    confidence: "80%",
+    kpi: "Security",
+    hash: "D9E2...004",
+  },
+  {
+    recordId: "EVID-MH-2026-005",
+    name: "User_Feedback.pdf",
+    category: "User Feedback",
+    type: "PDF",
+    source: "Field Supervisor",
+    uploader: "Field Supervisor",
+    date: "2026-05-31",
+    verificationLevel: "VERIFIED" as const,
+    verificationNote: "Reviewed by independent evaluator",
+    confidence: "88%",
+    kpi: "User Satisfaction",
+    hash: "F1C5...005",
+  },
+];
+
+const CAT_STYLES: Record<string, React.CSSProperties> = {
+  Technical:      { background: "var(--info-light)", color: "var(--info)", borderColor: "#bfdbfe" },
+  Performance:    { background: "#faf5ff", color: "#7c3aed", borderColor: "#ddd6fe" },
+  Commercial:     { background: "var(--success-light)", color: "var(--success)", borderColor: "#bbf7d0" },
+  Security:       { background: "var(--warning-light)", color: "var(--warning)", borderColor: "#fde68a" },
+  "User Feedback":{ background: "#fdf2f8", color: "#be185d", borderColor: "#fbcfe8" },
 };
 
 export default function EvidencePage() {
   const { pilot } = usePraman();
-  const evidence = (pilot as any)?.evidence_items || [];
+  const hasEvidence = (pilot?.kpis?.length ?? 0) > 0;
+
+  const verified = EVIDENCE_DATA.filter(e => e.verificationLevel === "VERIFIED").length;
+  const partial  = EVIDENCE_DATA.filter(e => e.verificationLevel === "PARTIALLY VERIFIED").length;
 
   return (
     <div className="space-y-5">
+      {/* Header */}
       <div>
-        <p className="text-xs font-bold uppercase tracking-widest text-[#168675]">Problem to Pilot</p>
-        <h1 className="mt-1 text-2xl font-black text-slate-900">Evidence Locker</h1>
-        <p className="mt-1 text-sm text-slate-500">Verifiable pilot evidence supporting procurement decisions</p>
+        <p className="text-[9px] font-bold uppercase tracking-[0.2em]" style={{ color: "var(--saffron)" }}>
+          Validation · Evidence Repository
+        </p>
+        <h1 className="mt-0.5 text-xl font-black" style={{ color: "var(--ink)" }}>Evidence Locker</h1>
+        <p className="mt-0.5 text-[11px]" style={{ color: "var(--ink-soft)" }}>
+          Official evidence records supporting procurement decisions · PIL-MH-2026-022
+        </p>
       </div>
 
-      {pilot?.kpis?.length > 0 ? (
+      {hasEvidence ? (
         <div className="space-y-5">
-          <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-5 py-4 flex items-start gap-3">
-            <ShieldCheck size={20} className="shrink-0 text-emerald-600 mt-0.5" />
-            <div>
-              <p className="text-sm font-bold text-emerald-800">Evidence verification active</p>
-              <p className="text-xs text-emerald-600 mt-0.5">All evidence is simulated for SIH demonstration. In production, files would be cryptographically hashed and audit-logged.</p>
+          {/* Verification Notice */}
+          <div
+            className="flex items-start gap-3 rounded border px-4 py-3"
+            style={{ background: "var(--gov-blue-light)", borderColor: "var(--gov-blue-border)", borderLeft: "3px solid var(--gov-blue)" }}
+          >
+            <ShieldCheck size={15} className="mt-0.5 shrink-0" style={{ color: "var(--gov-blue)" }} />
+            <div className="flex-1">
+              <p className="text-[11px] font-bold" style={{ color: "var(--gov-blue)" }}>
+                Evidence Verification Active — Official Records Repository
+              </p>
+              <p className="text-[10px] mt-0.5" style={{ color: "var(--ink-soft)" }}>
+                All evidence records are cryptographically hashed and immutably audit-logged. Verification status reflects independent evaluation. SIMULATED DATA for SIH 2026 demonstration.
+              </p>
             </div>
             <Badge tone="amber">SIMULATED</Badge>
           </div>
 
-          <div className="grid gap-3">
+          {/* Summary Stats */}
+          <div className="grid grid-cols-3 gap-3">
             {[
-              { name: "Detection_Report_May.pdf", category: "Technical", type: "PDF", uploader: "Pilot Evaluator", date: "2026-05-28", verification: "Checked", kpi: "Detection Recall", hash: "AUD-SIM-001" },
-              { name: "Field_Photos_Sample.zip", category: "Performance", type: "ZIP", uploader: "Field Team", date: "2026-05-29", verification: "Sampled", kpi: "False Positive Rate", hash: "AUD-SIM-002" },
-              { name: "KPI_Summary_May.xlsx", category: "Commercial", type: "XLSX", uploader: "Evaluator", date: "2026-05-30", verification: "Recomputed", kpi: "Cost Efficiency", hash: "AUD-SIM-003" },
-              { name: "Security_Assessment.pdf", category: "Security", type: "PDF", uploader: "CISO", date: "2026-05-30", verification: "80% complete", kpi: "Security", hash: "AUD-SIM-004" },
-              { name: "User_Feedback.pdf", category: "User Feedback", type: "PDF", uploader: "Field Supervisor", date: "2026-05-31", verification: "Reviewed", kpi: "User Satisfaction", hash: "AUD-SIM-005" },
-            ].map(item => (
-              <div key={item.name} className="flex items-center gap-4 rounded-xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-100">
-                  <FileCheck2 size={18} className="text-slate-500" />
+              { val: EVIDENCE_DATA.length, label: "Records Uploaded", style: { background: "var(--gov-blue-light)", borderColor: "var(--gov-blue-border)", color: "var(--gov-blue)" } },
+              { val: verified, label: "Fully Verified", style: { background: "var(--success-light)", borderColor: "#bbf7d0", color: "var(--success)" } },
+              { val: partial,  label: "Partially Verified", style: { background: "var(--warning-light)", borderColor: "#fde68a", color: "var(--warning)" } },
+            ].map(s => (
+              <div key={s.label} className="rounded border px-4 py-3 text-center" style={s.style}>
+                <p className="text-2xl font-black">{s.val}</p>
+                <p className="text-[10px] mt-0.5 font-semibold">{s.label}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Security warning */}
+          <div
+            className="flex items-start gap-2 rounded border px-4 py-3"
+            style={{ background: "var(--warning-light)", borderColor: "#fde68a", borderLeft: "3px solid var(--warning)" }}
+          >
+            <AlertTriangle size={13} className="mt-0.5 shrink-0" style={{ color: "var(--warning)" }} />
+            <p className="text-[11px] font-medium" style={{ color: "var(--warning)" }}>
+              <strong>Security Assessment (EVID-MH-2026-004)</strong> is 80% complete — penetration testing and data residency confirmation outstanding. Final procurement approval requires 100% completion.
+            </p>
+          </div>
+
+          {/* Evidence Records */}
+          <div className="space-y-3">
+            <p className="text-[9px] font-bold uppercase tracking-[0.18em]" style={{ color: "var(--ink-soft)" }}>
+              Evidence Records
+            </p>
+            {EVIDENCE_DATA.map(item => (
+              <div
+                key={item.recordId}
+                className="rounded border bg-white overflow-hidden"
+                style={{ borderColor: "var(--line)" }}
+              >
+                {/* Record Header */}
+                <div
+                  className="flex items-center justify-between px-4 py-2 border-b"
+                  style={{ borderColor: "var(--line)", background: "var(--mist)" }}
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="record-id">{item.recordId}</span>
+                    <span
+                      className="status-pill"
+                      style={{ ...CAT_STYLES[item.category], border: `1px solid ${CAT_STYLES[item.category]?.borderColor ?? "var(--line)"}` }}
+                    >
+                      {item.category}
+                    </span>
+                  </div>
+                  <VerificationBadge level={item.verificationLevel} />
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-bold text-slate-800 truncate">{item.name}</p>
-                  <p className="text-xs text-slate-500 mt-0.5">Uploaded by {item.uploader} · {item.date} · KPI: {item.kpi}</p>
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  <span className={`rounded-md border px-2 py-0.5 text-[10px] font-bold uppercase ${CATEGORY_COLORS[item.category] || "bg-slate-50 text-slate-600 border-slate-200"}`}>
-                    {item.category}
-                  </span>
-                  <Badge tone="signal">{item.verification}</Badge>
-                  <div className="text-[10px] font-mono text-slate-400">{item.hash}</div>
+
+                {/* Record Body */}
+                <div className="px-4 py-3">
+                  <div className="flex flex-wrap items-start justify-between gap-3 mb-2">
+                    <div>
+                      <p className="text-[13px] font-bold" style={{ color: "var(--ink)" }}>{item.name}</p>
+                      <p className="text-[10px] mt-0.5" style={{ color: "var(--ink-soft)" }}>
+                        Source: {item.source} · {item.date} · Related KPI: {item.kpi}
+                      </p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className="text-[9px] font-bold uppercase tracking-wider" style={{ color: "var(--ink-soft)" }}>Confidence</p>
+                      <p className="text-[15px] font-black" style={{ color: "var(--gov-blue)" }}>{item.confidence}</p>
+                    </div>
+                  </div>
+                  <p className="text-[10px] italic" style={{ color: "var(--ink-soft)" }}>{item.verificationNote}</p>
+                  <div className="mt-2.5 flex items-center gap-2 flex-wrap">
+                    <div className="flex items-center gap-1 text-[10px] font-mono" style={{ color: "var(--ink-soft)" }}>
+                      <Hash size={10} /> {item.hash}
+                    </div>
+                    <button
+                      className="inline-flex items-center gap-1 rounded px-2.5 py-1 text-[10px] font-semibold transition"
+                      style={{ background: "var(--gov-blue-light)", color: "var(--gov-blue)", border: "1px solid var(--gov-blue-border)" }}
+                    >
+                      View Evidence Record
+                    </button>
+                    <button
+                      className="inline-flex items-center gap-1 rounded px-2.5 py-1 text-[10px] font-semibold transition"
+                      style={{ background: "var(--mist)", color: "var(--ink-mid)", border: "1px solid var(--line)" }}
+                    >
+                      Audit History
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
           </div>
 
-          <Panel title="Verification Summary" icon={<CheckCircle2 size={15} />}>
-            <div className="grid gap-3 sm:grid-cols-3">
-              {[
-                { label: "Documents Uploaded", value: "5" },
-                { label: "Fully Verified", value: "4" },
-                { label: "Partial (Security)", value: "1" },
-              ].map(item => (
-                <div key={item.label} className="rounded-lg border border-slate-100 bg-slate-50 px-4 py-3 text-center">
-                  <p className="text-2xl font-black text-slate-900">{item.value}</p>
-                  <p className="text-xs text-slate-500 mt-0.5">{item.label}</p>
-                </div>
+          {/* Verification Legend */}
+          <div className="rounded border bg-white px-4 py-3" style={{ borderColor: "var(--line)" }}>
+            <p className="text-[9px] font-bold uppercase tracking-wider mb-2" style={{ color: "var(--ink-soft)" }}>
+              Verification Status Legend
+            </p>
+            <div className="flex flex-wrap gap-3">
+              {(["VERIFIED", "PARTIALLY VERIFIED", "SELF-DECLARED", "REJECTED", "PENDING"] as const).map(l => (
+                <VerificationBadge key={l} level={l} />
               ))}
             </div>
-            <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-              <strong>Security assessment</strong> is 80% complete — outstanding items must be resolved before final procurement approval.
-            </div>
-          </Panel>
+          </div>
         </div>
       ) : (
-        <Panel title="Evidence Locker" icon={<FileCheck2 size={15} />}>
+        <Panel title="Evidence Locker" icon={<FileCheck2 size={13} />}>
           <Empty
-            text="Evidence is populated when the pilot is fast-forwarded to Final Evaluation. Go to Pilots and click 'Fast-Forward'."
-            action="Go to Pilots → Fast-Forward"
+            text="Evidence records are populated when the pilot is fast-forwarded to Final Evaluation. Navigate to Pilot Management and click 'Fast-Forward'."
+            action="Go to Pilot Management → Fast-Forward"
           />
         </Panel>
       )}

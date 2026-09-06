@@ -7,15 +7,15 @@ import { usePraman } from "@/lib/PramanContext";
 
 export default function LoginPage() {
   const router = useRouter();
-  const { user, email, setEmail, password, setPassword, mfa, setMfa, loading, login } = usePraman();
+  const { user, email, setEmail, password, setPassword, mfa, setMfa, loading, login, error, authInitialized } = usePraman();
 
   useEffect(() => {
-    if (user) {
+    if (authInitialized && user) {
       router.push("/dashboard");
     }
-  }, [user, router]);
+  }, [user, authInitialized, router]);
 
-  if (user) {
+  if (!authInitialized || user) {
     return null; // or a loading spinner
   }
 
@@ -85,6 +85,11 @@ export default function LoginPage() {
                 <p className="mt-2 text-sm text-slate-500">Sign in to continue to the PRAMAN command center.</p>
               </div>
               <div className="mt-8 space-y-5">
+                {error && (
+                  <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-600">
+                    {error}
+                  </div>
+                )}
                 <div>
                   <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-slate-500">Official Email</label>
                   <input

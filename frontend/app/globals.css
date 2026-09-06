@@ -1,29 +1,56 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,400;0,14..32,500;0,14..32,600;0,14..32,700;0,14..32,800;0,14..32,900;1,14..32,400&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
   color-scheme: light;
-  --ink: #0f172a;
-  --paper: #f8fafc;
-  --signal: #168675;
-  --signal-dark: #116f62;
-  --amber: #d97706;
-  --critical: #dc2626;
-  --line: #e2e8f0;
-  --mist: #f1f5f9;
-  --sidebar-bg: #062b27;
-  --sidebar-accent: #168675;
+
+  /* ── Government Blue palette ── */
+  --gov-blue:        #1a3a5c;
+  --gov-blue-dark:   #102540;
+  --gov-blue-mid:    #1e4976;
+  --gov-blue-light:  #e8f0f9;
+  --gov-blue-border: #c2d4e8;
+
+  /* ── Saffron accent ── */
+  --saffron:         #e07b1f;
+  --saffron-light:   #fef3e2;
+  --saffron-border:  #f4c07a;
+
+  /* ── Neutrals ── */
+  --ink:      #0d1b2a;
+  --ink-mid:  #374151;
+  --ink-soft: #6b7280;
+  --paper:    #f5f7fa;
+  --white:    #ffffff;
+  --line:     #dde3ea;
+  --mist:     #f0f3f7;
+  --surface:  #f8fafc;
+
+  /* ── Status ── */
+  --success:       #15803d;
+  --success-light: #dcfce7;
+  --warning:       #b45309;
+  --warning-light: #fef3c7;
+  --critical:      #b91c1c;
+  --critical-light:#fee2e2;
+  --info:          #1d4ed8;
+  --info-light:    #dbeafe;
+
+  /* ── Legacy aliases (used by existing components) ── */
+  --signal:      var(--gov-blue);
+  --signal-dark: var(--gov-blue-dark);
+  --amber:       var(--saffron);
+
+  /* ── Sidebar ── */
+  --sidebar-bg:      var(--gov-blue-dark);
+  --sidebar-accent:  var(--gov-blue-mid);
 }
 
-*, *::before, *::after {
-  box-sizing: border-box;
-}
+*, *::before, *::after { box-sizing: border-box; }
 
-html {
-  font-size: 15px;
-}
+html { font-size: 14px; }
 
 body {
   margin: 0;
@@ -31,39 +58,77 @@ body {
   color: var(--ink);
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   -webkit-font-smoothing: antialiased;
-  line-height: 1.5;
+  line-height: 1.6;
 }
 
-button, input, textarea, select {
-  font: inherit;
-}
+button, input, textarea, select { font: inherit; }
 
 button:focus-visible,
 input:focus-visible,
 textarea:focus-visible,
 select:focus-visible,
 [tabindex]:focus-visible {
-  outline: 2px solid var(--signal);
+  outline: 2px solid var(--gov-blue);
   outline-offset: 2px;
 }
 
 /* Scrollbar */
-::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+::-webkit-scrollbar-thumb { background: #b0bec5; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #78909c; }
 
 /* Trace link */
 .trace-link {
   border: 0;
-  border-bottom: 1.5px solid var(--signal);
+  border-bottom: 1.5px solid var(--gov-blue);
   background: transparent;
-  color: var(--signal);
+  color: var(--gov-blue);
   cursor: pointer;
   padding: 0 0 1px;
   font-weight: 600;
 }
+.trace-link:hover { color: var(--gov-blue-dark); }
 
-.trace-link:hover {
-  color: var(--signal-dark);
+/* Government table style */
+.gov-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+.gov-table th {
+  background: var(--gov-blue);
+  color: #fff;
+  font-weight: 600;
+  text-align: left;
+  padding: 8px 12px;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.gov-table td {
+  padding: 7px 12px;
+  border-bottom: 1px solid var(--line);
+  color: var(--ink-mid);
+  vertical-align: middle;
+}
+.gov-table tr:hover td { background: var(--gov-blue-light); }
+.gov-table tr:last-child td { border-bottom: 0; }
+
+/* Record ID styling */
+.record-id {
+  font-family: 'SFMono-Regular', 'Consolas', monospace;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--gov-blue);
+  letter-spacing: 0.04em;
+}
+
+/* Status pill */
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 9px;
+  border-radius: 2px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
 }

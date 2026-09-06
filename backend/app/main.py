@@ -318,6 +318,7 @@ def request_consent(scale_id: str) -> dict:
     return {"id": scale_id, "status": "PENDING DEPARTMENT CONSENT", "data_class": DATA_CLASS}
 
 
+
 @app.get("/api/v1/audit/{entity_id}")
 def audit_log(entity_id: str) -> dict:
     return {"label": "APPEND-ONLY AUDIT LOG", "items": STATE["audit"], "data_class": DATA_CLASS}
@@ -329,4 +330,289 @@ def demo_reset() -> dict:
     return {"status": "reset", "state": STATE["stage"], "data_class": DATA_CLASS}
 
 
+# ── IMPLEMENTATION INTELLIGENCE ───────────────────────────────────────────────
+
+@app.get("/api/v1/implementation/{project_id}")
+def get_implementation(project_id: str) -> dict:
+    impl = STATE.get("implementation")
+    if not impl or impl.get("project_id") != project_id:
+        raise HTTPException(status_code=404, detail="Implementation plan not found for this project.")
+    return impl
+
+
+@app.post("/api/v1/implementation/{project_id}")
+def init_implementation(project_id: str) -> dict:
+    impl = STATE.get("implementation")
+    if not impl:
+        raise HTTPException(status_code=404, detail="No implementation data seeded.")
+    STATE["stage"] = "implementation"
+    audit("Implementation Plan Initialized", project_id, reason="Implementation plan loaded from handoff data")
+    return impl
+
+
+class TaskUpdateRequest(BaseModel):
+    status: str
+    completion_pct: int | None = None
+    notes: str | None = None
+
+
+@app.patch("/api/v1/implementation/{project_id}/tasks/{task_id}")
+def update_task(project_id: str, task_id: str, payload: TaskUpdateRequest) -> dict:
+    impl = STATE.get("implementation")
+    if not impl:
+        raise HTTPException(status_code=404, detail="Implementation plan not found.")
+    task = next((t for t in impl["tasks"] if t["id"] == task_id), None)
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found.")
+    task["status"] = payload.status
+    if payload.completion_pct is not None:
+        task["completion_pct"] = payload.completion_pct
+    if payload.notes:
+        task["notes"] = payload.notes
+    audit(f"Task Updated: {task['name']}", task_id, reason=f"Status changed to {payload.status}")
+    return task
+
+
+@app.patch("/api/v1/implementation/{project_id}/tasks/{task_id}/resolve-blocker")
+def resolve_blocker(project_id: str, task_id: str) -> dict:
+    impl = STATE.get("implementation")
+    if not impl:
+        raise HTTPException(status_code=404, detail="Implementation plan not found.")
+    # Find the blocked task and cascade resolution to dependents
+    task = next((t for t in impl["tasks"] if t["id"] == task_id), None)
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found.")
+    task["status"] = "In Progress"
+    task["completion_pct"] = 60
+    task["notes"] = task["notes"] + " | BLOCKER RESOLVED: API access granted. Integration in progress."
+    impl["blocker_resolved"] = True
+    # Cascade: unblock dependent tasks
+    cascade = []
+    for t in impl["tasks"]:
+        if task_id in t.get("depends_on", []) and t["status"] == "Blocked":
+            t["status"] = "Not Started"
+            cascade.append(t["id"])
+    audit("Blocker Resolved", task_id, reason=f"Dependency resolved. Cascade unblocked: {cascade}")
+    return {"task": task, "unblocked": cascade, "message": "Blocker resolved. Dependent tasks unblocked.", "data_class": DATA_CLASS}
+
+
+@app.get("/api/v1/implementation/{project_id}/blockers")
+def get_blockers(project_id: str) -> dict:
+    impl = STATE.get("implementation")
+    if not impl:
+        return {"blockers": [], "data_class": DATA_CLASS}
+    tasks = impl["tasks"]
+    blocked = [t for t in tasks if t["status"] == "Blocked"]
+    blocker_info = []
+    for bt in blocked:
+        deps = [t for t in tasks if t["id"] in bt.get("depends_on", []) and t["status"] == "Blocked"]
+        blocker_info.append({
+            "task_id": bt["id"],
+            "task_name": bt["name"],
+            "blocker_reason": bt["notes"],
+            "responsible_owner": bt["owner"],
+            "responsible_department": bt["department"],
+            "affected_task_ids": [t["id"] for t in tasks if bt["id"] in t.get("depends_on", [])],
+            "recommended_action": f"Resolve {bt['name']} before proceeding",
+            "severity": bt["priority"],
+            "data_class": DATA_CLASS,
+        })
+    return {"blockers": blocker_info, "total": len(blocker_info), "data_class": DATA_CLASS}
+
+
+@app.get("/api/v1/implementation/{project_id}/responsibilities")
+def get_responsibilities(project_id: str) -> dict:
+    return {"items": STATE.get("responsibilities", []), "data_class": DATA_CLASS}
+
+
+# ── MONITORING ────────────────────────────────────────────────────────────────
+
+@app.get("/api/v1/monitoring/{project_id}")
+def get_monitoring(project_id: str) -> dict:
+    return {"items": STATE.get("monitoring", []), "data_class": DATA_CLASS}
+
+
+class MonitoringRecordRequest(BaseModel):
+    month: str
+    period: str
+    accuracy_pct: float
+    uptime_pct: float
+    cost_lakh: float
+    issues_count: int
+    notes: str = ""
+
+
+@app.post("/api/v1/monitoring/{project_id}")
+def add_monitoring_record(project_id: str, payload: MonitoringRecordRequest) -> dict:
+    from uuid import uuid4
+    record = {
+        "id": str(uuid4()),
+        "month": payload.month,
+        "period": payload.period,
+        "accuracy_pct": payload.accuracy_pct,
+        "uptime_pct": payload.uptime_pct,
+        "cost_lakh": payload.cost_lakh,
+        "issues_count": payload.issues_count,
+        "kpis": [],
+        "notes": payload.notes,
+        "evidence_ref": f"EVID-MON-{payload.period.replace(' ', '-')}",
+        "data_class": DATA_CLASS,
+    }
+    STATE["monitoring"].append(record)
+    audit("Monitoring Record Added", project_id, reason=f"Monthly record for {payload.period}")
+    return record
+
+
+# ── OUTCOMES ──────────────────────────────────────────────────────────────────
+
+@app.get("/api/v1/outcomes/{project_id}")
+def get_outcome(project_id: str) -> dict:
+    outcome = STATE.get("outcome")
+    if not outcome:
+        raise HTTPException(status_code=404, detail="No outcome recorded yet.")
+    return outcome
+
+
+class OutcomeRequest(BaseModel):
+    result: str
+    reason: str
+    related_evidence: str = ""
+    related_dependency: str = ""
+
+
+@app.post("/api/v1/outcomes/{project_id}")
+def submit_outcome(project_id: str, payload: OutcomeRequest) -> dict:
+    STATE["outcome"]["result"] = payload.result
+    STATE["outcome"]["reason"] = payload.reason
+    if payload.related_evidence:
+        STATE["outcome"]["related_evidence"] = payload.related_evidence
+    audit("Outcome Recorded", project_id, reason=f"Result: {payload.result}")
+    return STATE["outcome"]
+
+
+# ── LESSONS LEARNED ───────────────────────────────────────────────────────────
+
+@app.get("/api/v1/lessons/{project_id}")
+def get_lessons(project_id: str) -> dict:
+    return {"items": STATE.get("lessons", []), "data_class": DATA_CLASS}
+
+
+class LessonRequest(BaseModel):
+    category: str
+    lesson: str
+    what_worked: str = ""
+    what_failed: str = ""
+    recommendation: str = ""
+    reuse_recommended: bool = False
+
+
+@app.post("/api/v1/lessons/{project_id}")
+def add_lesson(project_id: str, payload: LessonRequest) -> dict:
+    from uuid import uuid4
+    lesson = {
+        "id": str(uuid4()),
+        "project_id": project_id,
+        "category": payload.category,
+        "lesson": payload.lesson,
+        "what_worked": payload.what_worked,
+        "what_failed": payload.what_failed,
+        "delay_cause": "",
+        "dependency_issue": "",
+        "recommendation": payload.recommendation,
+        "reuse_recommended": payload.reuse_recommended,
+        "startup_recommended": True,
+        "evidence_ref": "",
+        "outcome_ref": f"outcome-{project_id}",
+        "risk_ref": "",
+        "data_class": DATA_CLASS,
+    }
+    STATE["lessons"].append(lesson)
+    audit("Lesson Learned Recorded", project_id, reason=f"Category: {payload.category}")
+    return lesson
+
+
+# ── INSTITUTIONAL MEMORY ──────────────────────────────────────────────────────
+
+@app.get("/api/v1/institutional-memory")
+def list_institutional_memory() -> dict:
+    return {"items": STATE.get("institutional_memory", []), "total": len(STATE.get("institutional_memory", [])), "data_class": DATA_CLASS}
+
+
+@app.get("/api/v1/institutional-memory/search")
+def search_institutional_memory(q: str = "") -> dict:
+    records = STATE.get("institutional_memory", [])
+    if not q.strip():
+        return {"items": records, "query": q, "data_class": DATA_CLASS}
+    q_lower = q.lower()
+    results = [
+        r for r in records
+        if q_lower in r["problem"].lower()
+        or q_lower in r["domain"].lower()
+        or q_lower in r["technology"].lower()
+        or q_lower in r["city"].lower()
+        or any(q_lower in sig for sig in r.get("similarity_signature", []))
+    ]
+    failed_match = any(r["outcome"] == "Failed" for r in results)
+    return {
+        "items": results,
+        "query": q,
+        "total": len(results),
+        "has_failed_match": failed_match,
+        "data_class": DATA_CLASS,
+    }
+
+
+# ── REUSE INTELLIGENCE ────────────────────────────────────────────────────────
+
+@app.get("/api/v1/reuse-recommendations")
+def get_reuse_recommendations(problem_id: str = "1042") -> dict:
+    best = next((r for r in STATE.get("institutional_memory", []) if r["outcome"] == "Successful"), None)
+    if not best:
+        return {"items": [], "data_class": DATA_CLASS}
+    recommendation = {
+        "id": "reuse-001",
+        "similarity_pct": 87,
+        "previous_project_id": best["id"],
+        "previous_city": best["city"],
+        "previous_year": best["year"],
+        "startup": best["startup"],
+        "startup_id": best["startup_id"],
+        "previous_pilot_score": best["pilot_score"],
+        "production_outcome_pct": best["actual_accuracy_pct"],
+        "implementation_days": best["implementation_days"],
+        "reuse_confidence_pct": 88,
+        "recommendation": "REUSE EXISTING SOLUTION",
+        "reason": f"Problem #1042 shares 87% structural similarity with the {best['city']} {best['year']} project. {best['startup']} achieved {best['actual_accuracy_pct']}% accuracy in production — exceeding targets. Reuse eliminates procurement risk and reduces implementation time.",
+        "known_risks": best["known_risks"],
+        "known_dependencies": best["known_dependencies"],
+        "data_class": DATA_CLASS,
+    }
+    return {"items": [recommendation], "data_class": DATA_CLASS}
+
+
+# ── RISK RADAR ────────────────────────────────────────────────────────────────
+
+@app.get("/api/v1/risk-radar/{project_id}")
+def get_risk_radar(project_id: str) -> dict:
+    return {"items": STATE.get("risk_radar", []), "data_class": DATA_CLASS}
+
+
+# ── DECISION REPLAY ───────────────────────────────────────────────────────────
+
+@app.get("/api/v1/decision-replay/{decision_id}")
+def get_decision_replay(decision_id: str) -> dict:
+    replay = STATE.get("decision_replay")
+    if not replay:
+        raise HTTPException(status_code=404, detail="No decision replay data found.")
+    return replay
+
+
+# ── MODEL VERSIONS ────────────────────────────────────────────────────────────
+
+@app.get("/api/v1/model-versions")
+def get_model_versions() -> dict:
+    return {"items": STATE.get("model_versions", []), "data_class": DATA_CLASS}
+
+
 reset_state()
+
