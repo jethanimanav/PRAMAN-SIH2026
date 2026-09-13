@@ -2,7 +2,18 @@
 
 import { usePraman } from "@/lib/PramanContext";
 import { AlertBanner, Empty, Panel, Action } from "@/components/ui";
-import { BookOpen, Lightbulb, AlertTriangle, ShieldAlert, GitBranch, RefreshCw, MessageSquarePlus } from "lucide-react";
+import {
+  BookOpen,
+  Lightbulb,
+  AlertTriangle,
+  ShieldAlert,
+  GitBranch,
+  RefreshCw,
+  MessageSquarePlus,
+  CheckCircle2,
+  Clock,
+} from "lucide-react";
+
 import type { LessonLearned } from "@/types/praman";
 
 export default function LessonsPage() {
@@ -51,7 +62,7 @@ export default function LessonsPage() {
           <p className="mt-1 text-sm text-slate-500">Structured retrospective data used to train the PRAMAN matching AI.</p>
         </div>
         <div>
-           <button className="inline-flex items-center gap-2 rounded-lg bg-[#168675] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#126b5d]">
+          <button className="inline-flex items-center gap-2 rounded-lg bg-[#168675] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#126b5d]">
             <MessageSquarePlus size={16} /> Record Lesson
           </button>
         </div>
@@ -60,20 +71,20 @@ export default function LessonsPage() {
       {error && <AlertBanner type="error" message={error} />}
 
       <div className="grid gap-5">
-        {lessons.map((lesson: LessonLearned) => (
+        {lessons.map((lesson) => (
           <div key={lesson.id} className="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-sm">
             <div className="border-b border-slate-100 bg-slate-50 px-5 py-4 flex items-start justify-between gap-4">
               <div className="flex items-start gap-3">
                 <div className="mt-1">{getCategoryIcon(lesson.category)}</div>
                 <div>
-                   <span className={`inline-flex rounded px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider border mb-2 ${getCategoryColor(lesson.category)}`}>
-                     {lesson.category}
-                   </span>
-                   <h2 className="text-lg font-bold text-slate-900 leading-snug">{lesson.lesson}</h2>
+                  <span className={`inline-flex rounded px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider border mb-2 ${getCategoryColor(lesson.category)}`}>
+                    {lesson.category}
+                  </span>
+                  <h2 className="text-lg font-bold text-slate-900 leading-snug">{lesson.lesson}</h2>
                 </div>
               </div>
             </div>
-            
+
             <div className="p-5 grid gap-6 lg:grid-cols-2">
               <div className="space-y-4">
                 <div>
@@ -89,17 +100,17 @@ export default function LessonsPage() {
                   <p className="text-sm text-slate-700 leading-relaxed bg-red-50/50 p-3 rounded border border-red-100">{lesson.what_failed}</p>
                 </div>
               </div>
-              
+
               <div className="space-y-4">
-                 <div>
+                <div>
                   <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Systemic Impact</h3>
                   <div className="space-y-2">
                     <div className="flex items-start gap-2 text-sm text-slate-600 bg-slate-50 p-2 rounded">
-                      <Clock size={14} className="mt-0.5 shrink-0 text-amber-500" /> 
+                      <Clock size={14} className="mt-0.5 shrink-0 text-amber-500" />
                       <span className="font-medium text-slate-700 mr-1">Delay Cause:</span> {lesson.delay_cause || "None"}
                     </div>
                     <div className="flex items-start gap-2 text-sm text-slate-600 bg-slate-50 p-2 rounded">
-                      <GitBranch size={14} className="mt-0.5 shrink-0 text-purple-500" /> 
+                      <GitBranch size={14} className="mt-0.5 shrink-0 text-purple-500" />
                       <span className="font-medium text-slate-700 mr-1">Dependency:</span> {lesson.dependency_issue || "None"}
                     </div>
                   </div>
