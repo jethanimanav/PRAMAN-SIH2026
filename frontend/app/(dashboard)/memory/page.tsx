@@ -112,7 +112,7 @@ export default function MemoryPage() {
           <p className="text-[9px] font-bold uppercase tracking-[0.18em]" style={{ color: "var(--ink-soft)" }}>
             Historical Project Records — {memory.length} found
           </p>
-          {memory.map((record: InstitutionalMemoryRecord) => {
+          {memory.map((record) => {
             const os = OUTCOME_STYLE[record.outcome] ?? OUTCOME_STYLE["Successful"];
             return (
               <div key={record.id} className="rounded border bg-white overflow-hidden" style={{ borderColor: "var(--line)" }}>
@@ -173,7 +173,7 @@ export default function MemoryPage() {
                           Core Failure Causes
                         </p>
                         <ul className="space-y-1">
-                          {record.failure_causes.map((c, i) => (
+                          {record.failure_causes.map((c: string, i: number) => (
                             <li key={i} className="flex items-start gap-1.5 text-[11px]" style={{ color: "var(--critical)" }}>
                               <AlertTriangle size={10} className="mt-0.5 shrink-0" /> {c}
                             </li>
@@ -188,7 +188,7 @@ export default function MemoryPage() {
                         Implementation Lessons
                       </p>
                       <ul className="space-y-1.5">
-                        {record.lessons.map((lesson, i) => (
+                        {record.lessons.map((lesson: string, i: number) => (
                           <li key={i} className="flex items-start gap-2 text-[11px] rounded border px-3 py-2"
                             style={{ background: "var(--mist)", borderColor: "var(--line)", color: "var(--ink-mid)" }}>
                             <span className="mt-0.5 font-bold shrink-0" style={{ color: "var(--gov-blue)" }}>→</span>
@@ -206,7 +206,7 @@ export default function MemoryPage() {
                         <GitBranch size={10} /> Known Dependencies
                       </p>
                       <div className="flex flex-wrap gap-1.5">
-                        {record.known_dependencies.map((dep, i) => (
+                        {record.known_dependencies.map((dep: string, i: number) => (
                           <span
                             key={i}
                             className="rounded border px-2.5 py-1 text-[10px] font-medium"
@@ -224,7 +224,7 @@ export default function MemoryPage() {
                         <ShieldAlert size={10} /> Identified Risks
                       </p>
                       <ul className="space-y-1">
-                        {record.known_risks.map((r, i) => (
+                        {record.known_risks.map((r: string, i: number) => (
                           <li key={i} className="flex items-start gap-1.5 text-[10px]" style={{ color: "var(--ink-mid)" }}>
                             <AlertTriangle size={9} className="mt-0.5 shrink-0" style={{ color: "var(--warning)" }} />
                             {r}

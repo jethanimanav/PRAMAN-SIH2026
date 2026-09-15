@@ -6,9 +6,9 @@ import type { TracePayload } from "./EvidenceTrace";
 
 /* ── Panel ── */
 export function Panel({
-  title, icon, children, className = "", action,
+  title, icon, children, className = "", action, badge,
 }: {
-  title: string; icon?: React.ReactNode; children: React.ReactNode; className?: string;
+  title: string; icon?: React.ReactNode; children: React.ReactNode; className?: string; badge?: React.ReactNode;
   action?: React.ReactNode;
 }) {
   return (
@@ -25,7 +25,7 @@ export function Panel({
           )}
           <h2 className="text-[12px] font-bold uppercase tracking-wider" style={{ color: "var(--ink-mid)" }}>{title}</h2>
         </div>
-        {action && <div>{action}</div>}
+        {action && <div>{action}</div>}{badge && <div>{badge}</div>}
       </div>
       <div className="p-4">{children}</div>
     </div>

@@ -4,7 +4,7 @@ import { usePraman } from "@/lib/PramanContext";
 import { AlertBanner, Empty, Panel } from "@/components/ui";
 import { ShieldAlert, AlertTriangle, CheckCircle2, TrendingDown, Activity } from "lucide-react";
 
-const LEVEL_STYLE: Record<string, React.CSSProperties> = {
+const LEVEL_STYLE: Record<string, React.CSSProperties & { barColor: string }> =  {
   High:   { background: "var(--critical-light)", borderColor: "#fecaca", color: "var(--critical)", barColor: "var(--critical)" },
   Medium: { background: "var(--warning-light)",  borderColor: "#fde68a", color: "var(--warning)",  barColor: "var(--saffron)" },
   Low:    { background: "var(--success-light)",  borderColor: "#bbf7d0", color: "var(--success)",  barColor: "var(--success)" },
@@ -187,3 +187,4 @@ export default function RiskRadarPage() {
     </div>
   );
 }
+
