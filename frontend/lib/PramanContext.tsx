@@ -171,15 +171,19 @@ export function PramanProvider({ children }: { children: ReactNode }) {
         method: "POST",
         body: JSON.stringify({ email, password }),
       });
-      const result = await api<{ user: Record<string, any> }>("/api/v1/auth/mfa/verify", {
+      const result = await api<{ access_token?: string; user: Record<string, any> }>("/api/v1/auth/mfa/verify", {
         method: "POST",
         body: JSON.stringify({ email, code: mfa }),
       });
+      if (result.access_token) {
+        localStorage.setItem("praman_token", result.access_token);
+      }
       setUser(result.user);
     });
   }
 
   function logout() {
+    localStorage.removeItem("praman_token");
     setUser(null);
   }
 
@@ -204,14 +208,15 @@ export function PramanProvider({ children }: { children: ReactNode }) {
   }
 
   async function loadAllModuleDataInternal() {
+    const probId = problem?.id || "1042";
     const [implResult, monResult, outcomeResult, lessonsResult, memResult, riskResult, replayResult, modelsResult] = await Promise.allSettled([
-      api<Record<string, any>>("/api/v1/implementation/1042"),
-      api<{ items: Record<string, any>[] }>("/api/v1/monitoring/1042"),
-      api<Record<string, any>>("/api/v1/outcomes/1042"),
-      api<{ items: Record<string, any>[] }>("/api/v1/lessons/1042"),
+      api<Record<string, any>>(`/api/v1/implementation/${probId}`),
+      api<{ items: Record<string, any>[] }>(`/api/v1/monitoring/${probId}`),
+      api<Record<string, any>>(`/api/v1/outcomes/${probId}`),
+      api<{ items: Record<string, any>[] }>(`/api/v1/lessons/${probId}`),
       api<{ items: Record<string, any>[] }>("/api/v1/institutional-memory"),
-      api<{ items: Record<string, any>[] }>("/api/v1/risk-radar/1042"),
-      api<Record<string, any>>("/api/v1/decision-replay/replay-1042"),
+      api<{ items: Record<string, any>[] }>(`/api/v1/risk-radar/${probId}`),
+      api<Record<string, any>>(`/api/v1/decision-replay/replay-${probId}`),
       api<{ items: Record<string, any>[] }>("/api/v1/model-versions"),
     ]);
     if (implResult.status === "fulfilled") setImplementation(implResult.value);
@@ -229,15 +234,17 @@ export function PramanProvider({ children }: { children: ReactNode }) {
   }
 
   async function structure() {
+    const probId = problem?.id || "1042";
     const result = await run("Structuring problem", () =>
-      api<Requirement>("/api/v1/problems/1042/structure", { method: "POST" })
+      api<Requirement>(`/api/v1/problems/${probId}/structure`, { method: "POST" })
     );
     if (result) setRequirement(result);
   }
 
   async function approve() {
+    const probId = problem?.id || "1042";
     const result = await run("Approving requirement", () =>
-      api<Requirement>("/api/v1/problems/1042/requirements/approve", { method: "POST" })
+      api<Requirement>(`/api/v1/problems/${probId}/requirements/approve`, { method: "POST" })
     );
     if (result) setRequirement(result);
   }

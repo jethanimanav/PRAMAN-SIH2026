@@ -1,9 +1,10 @@
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 
 from app.core.config import settings
-from app.core.security import create_token
+from app.core.security import create_token, decode_token
 from app.services.demo.store import DATA_CLASS, STATE, audit, reset_state
 from app.services.export.handoff import build_handoff
 from app.services.matching.engine import match
@@ -17,6 +18,27 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+security_scheme = HTTPBearer(auto_error=False)
+
+
+def get_current_user(credentials: HTTPAuthorizationCredentials | None = Depends(security_scheme)) -> dict:
+    if credentials and credentials.credentials:
+        token = credentials.credentials
+        payload = decode_token(token)
+        if payload and "sub" in payload:
+            user = next((u for u in STATE["users"] if u["id"] == payload["sub"]), None)
+            if user:
+                return user
+    return {"id": "user-officer-01", "name": "Ananya Deshmukh", "email": "officer@praman.gov.in", "role": "officer"}
+
+
+def require_role(*roles: str):
+    def dependency(user: dict = Depends(get_current_user)):
+        if user.get("role") not in roles and user.get("role") != "admin":
+            raise HTTPException(status_code=403, detail="Permission denied for this role")
+        return user
+    return dependency
 
 
 class LoginRequest(BaseModel):
@@ -35,6 +57,18 @@ class DecisionRequest(BaseModel):
     reason: str
     comment: str | None = None
     officer_identity: str = "Ananya Deshmukh"
+
+
+class ProblemIntakeRequest(BaseModel):
+    title: str
+    department: str
+    narrative: str
+    location: str | None = "Pune"
+    domain: str | None = "Urban Infrastructure"
+    budget: str | None = "₹50L – ₹1Cr"
+    timeline: str | None = "90"
+    kpi: str | None = None
+    constraint: str | None = None
 
 
 def problem_1042() -> dict:
@@ -87,9 +121,9 @@ def verify_mfa(payload: MfaRequest) -> dict:
 @app.get("/api/v1/dashboard/summary")
 def dashboard() -> dict:
     return {
-        "problems": 20,
-        "startups": 100,
-        "pilots": 8,
+        "problems": len(STATE["problems"]) + 19,
+        "startups": len(STATE["startups"]) + 97,
+        "pilots": len(STATE["pilots"]) + 7,
         "hero_status": STATE["stage"],
         "demo_mode": True,
         "engine": settings.engine_label,
@@ -102,11 +136,36 @@ def list_problems() -> dict:
     return {"items": STATE["problems"], "data_class": DATA_CLASS}
 
 
+@app.post("/api/v1/problems")
+def create_problem(payload: ProblemIntakeRequest, user: dict = Depends(get_current_user)) -> dict:
+    problem_id = str(len(STATE["problems"]) + 1042)
+    problem = {
+        "id": problem_id,
+        "title": payload.title,
+        "department": payload.department,
+        "location": payload.location or "Pune",
+        "domain": payload.domain or "Urban Infrastructure",
+        "narrative": payload.narrative,
+        "budget": payload.budget or "₹50L – ₹1Cr",
+        "timeline": f"{payload.timeline or 90} days",
+        "status": "Submitted",
+        "kpis": [{"name": payload.kpi or "Road-damage detection recall", "target": "≥ 90%", "confidence": "HIGH"}],
+        "constraints": [payload.constraint] if payload.constraint else ["Night-time false positives"],
+        "data_class": DATA_CLASS,
+    }
+    STATE["problems"].append(problem)
+    audit("Problem Submitted", f"Problem #{problem_id}", actor=user.get("name", "Officer"), reason=payload.title)
+    return problem
+
+
 @app.get("/api/v1/problems/{problem_id}")
 def get_problem(problem_id: str) -> dict:
-    if problem_id != "1042":
-        raise HTTPException(status_code=404, detail="Only the hero problem is deeply interactive in this prototype.")
-    return problem_1042()
+    problem = next((p for p in STATE["problems"] if str(p["id"]) == str(problem_id)), None)
+    if not problem:
+        if problem_id == "1042":
+            return problem_1042()
+        raise HTTPException(status_code=404, detail=f"Problem #{problem_id} not found.")
+    return problem
 
 
 @app.post("/api/v1/problems/{problem_id}/structure")
@@ -607,11 +666,275 @@ def get_decision_replay(decision_id: str) -> dict:
     return replay
 
 
+
 # ── MODEL VERSIONS ────────────────────────────────────────────────────────────
 
 @app.get("/api/v1/model-versions")
 def get_model_versions() -> dict:
     return {"items": STATE.get("model_versions", []), "data_class": DATA_CLASS}
+
+
+# ── INNOVATION HUB ────────────────────────────────────────────────────────────
+
+class SolutionSubmitRequest(BaseModel):
+    challenge_id: str
+    solution_name: str
+    company: str
+    category: str
+    short_description: str
+    technical_capabilities: str
+    technology_stack: str
+    deployment_model: str
+    previous_deployments: str | None = ""
+    government_experience: str | None = ""
+    evidence_summary: str | None = ""
+    implementation_timeline: str | None = ""
+    contact_email: str | None = ""
+
+
+class ShortlistSolutionRequest(BaseModel):
+    reason: str
+
+
+class MoveToValidationRequest(BaseModel):
+    reason: str
+    link_to_existing_case: bool = False
+
+
+@app.get("/api/v1/innovation-hub/challenges")
+def list_hub_challenges(
+    domain: str | None = None,
+    location: str | None = None,
+    urgency: str | None = None,
+    stage: str | None = None,
+    q: str | None = None,
+) -> dict:
+    """List all public Innovation Hub challenges with optional filtering."""
+    hub = STATE.get("innovation_hub", {})
+    challenges = hub.get("challenges", [])
+    if domain:
+        challenges = [c for c in challenges if domain.lower() in c.get("domain", "").lower()]
+    if location:
+        challenges = [c for c in challenges if location.lower() in c.get("location", "").lower()]
+    if urgency:
+        challenges = [c for c in challenges if c.get("urgency", "").lower() == urgency.lower()]
+    if stage:
+        challenges = [c for c in challenges if c.get("stage", "").lower() == stage.lower()]
+    if q:
+        q_lower = q.lower()
+        challenges = [
+            c for c in challenges
+            if q_lower in c.get("title", "").lower()
+            or q_lower in c.get("description", "").lower()
+            or q_lower in c.get("domain", "").lower()
+            or q_lower in c.get("department", "").lower()
+            or q_lower in c.get("technology", "").lower()
+        ]
+    return {
+        "items": challenges,
+        "total": len(challenges),
+        "data_class": DATA_CLASS,
+    }
+
+
+@app.get("/api/v1/innovation-hub/challenges/{challenge_id}")
+def get_hub_challenge(challenge_id: str) -> dict:
+    """Get a single Innovation Hub challenge by ID."""
+    hub = STATE.get("innovation_hub", {})
+    challenge = next((c for c in hub.get("challenges", []) if c["id"] == challenge_id), None)
+    if not challenge:
+        raise HTTPException(status_code=404, detail=f"Challenge {challenge_id} not found.")
+    return challenge
+
+
+@app.post("/api/v1/innovation-hub/challenges/{challenge_id}/solutions")
+def submit_hub_solution(
+    challenge_id: str,
+    payload: SolutionSubmitRequest,
+    user: dict = Depends(get_current_user),
+) -> dict:
+    """Submit a solution to an Innovation Hub challenge."""
+    from uuid import uuid4
+    hub = STATE.get("innovation_hub", {})
+    challenge = next((c for c in hub.get("challenges", []) if c["id"] == challenge_id), None)
+    if not challenge:
+        raise HTTPException(status_code=404, detail=f"Challenge {challenge_id} not found.")
+    solution = {
+        "id": f"ihub-sol-{str(uuid4())[:8]}",
+        "challenge_id": challenge_id,
+        "challenge_title": challenge["title"],
+        "challenge_display_id": challenge["display_id"],
+        "solution_name": payload.solution_name,
+        "company": payload.company,
+        "category": payload.category,
+        "short_description": payload.short_description,
+        "technical_capabilities": payload.technical_capabilities,
+        "technology_stack": payload.technology_stack,
+        "deployment_model": payload.deployment_model,
+        "previous_deployments": payload.previous_deployments,
+        "government_experience": payload.government_experience,
+        "evidence_summary": payload.evidence_summary,
+        "evidence_validation": "Not yet verified",
+        "evidence_confidence": "Pending",
+        "implementation_timeline": payload.implementation_timeline,
+        "contact_email": payload.contact_email,
+        "submitted_by": user.get("name", "Startup"),
+        "submitted_by_id": user.get("id", ""),
+        "status": "Submitted",
+        "review_status": "New",
+        "shortlisted": False,
+        "praman_case_id": None,
+        "data_class": DATA_CLASS,
+    }
+    hub.setdefault("solutions", []).append(solution)
+    challenge["submission_count"] = challenge.get("submission_count", 0) + 1
+    audit(
+        "Innovation Hub Solution Submitted",
+        challenge_id,
+        actor=user.get("name", "Startup"),
+        role=user.get("role", "startup"),
+        reason=f"Solution '{payload.solution_name}' submitted by {payload.company}",
+    )
+    return solution
+
+
+@app.get("/api/v1/innovation-hub/solutions")
+def list_hub_solutions(
+    challenge_id: str | None = None,
+    status: str | None = None,
+    user: dict = Depends(get_current_user),
+) -> dict:
+    """List Innovation Hub solutions. Startups only see their own; officers see all."""
+    hub = STATE.get("innovation_hub", {})
+    solutions = hub.get("solutions", [])
+    if challenge_id:
+        solutions = [s for s in solutions if s.get("challenge_id") == challenge_id]
+    if status:
+        solutions = [s for s in solutions if s.get("status", "").lower() == status.lower()]
+    # Startups may only see their own submissions
+    if user.get("role") == "startup":
+        solutions = [s for s in solutions if s.get("submitted_by_id") == user.get("id")]
+    return {"items": solutions, "total": len(solutions), "data_class": DATA_CLASS}
+
+
+@app.get("/api/v1/innovation-hub/solutions/{solution_id}")
+def get_hub_solution(solution_id: str, user: dict = Depends(get_current_user)) -> dict:
+    """Get a single Innovation Hub solution by ID."""
+    hub = STATE.get("innovation_hub", {})
+    solution = next((s for s in hub.get("solutions", []) if s["id"] == solution_id), None)
+    if not solution:
+        raise HTTPException(status_code=404, detail=f"Solution {solution_id} not found.")
+    # Startups may only see their own submissions
+    if user.get("role") == "startup" and solution.get("submitted_by_id") != user.get("id"):
+        raise HTTPException(status_code=403, detail="Access denied.")
+    return solution
+
+
+@app.post("/api/v1/innovation-hub/solutions/{solution_id}/shortlist")
+def shortlist_hub_solution(
+    solution_id: str,
+    payload: ShortlistSolutionRequest,
+    user: dict = Depends(require_role("officer", "evaluator", "msins_admin")),
+) -> dict:
+    """Government officer shortlists an Innovation Hub solution."""
+    if not payload.reason.strip():
+        raise HTTPException(status_code=422, detail="Shortlist reason is required.")
+    hub = STATE.get("innovation_hub", {})
+    solution = next((s for s in hub.get("solutions", []) if s["id"] == solution_id), None)
+    if not solution:
+        raise HTTPException(status_code=404, detail=f"Solution {solution_id} not found.")
+    solution["status"] = "Shortlisted"
+    solution["review_status"] = "Shortlisted"
+    solution["shortlisted"] = True
+    solution["shortlist_reason"] = payload.reason
+    solution["shortlisted_by"] = user.get("name", "Officer")
+    audit(
+        "Innovation Hub Solution Shortlisted",
+        solution_id,
+        actor=user.get("name", "Officer"),
+        role=user.get("role", "officer"),
+        reason=payload.reason,
+    )
+    return solution
+
+
+@app.post("/api/v1/innovation-hub/solutions/{solution_id}/move-to-validation")
+def move_hub_solution_to_validation(
+    solution_id: str,
+    payload: MoveToValidationRequest,
+    user: dict = Depends(require_role("officer", "evaluator", "msins_admin")),
+) -> dict:
+    """
+    Move a shortlisted Innovation Hub solution into the PRAMAN lifecycle.
+    Links the solution to the existing PRAMAN case (Problem #1042) so the
+    existing 9-stage workflow continues without creating a duplicate lifecycle.
+    """
+    if not payload.reason.strip():
+        raise HTTPException(status_code=422, detail="Validation reason is required.")
+    hub = STATE.get("innovation_hub", {})
+    solution = next((s for s in hub.get("solutions", []) if s["id"] == solution_id), None)
+    if not solution:
+        raise HTTPException(status_code=404, detail=f"Solution {solution_id} not found.")
+    if not solution.get("shortlisted"):
+        raise HTTPException(status_code=409, detail="Solution must be shortlisted before moving to validation.")
+    # Link to the existing PRAMAN case (1042 is the hero scenario)
+    praman_case_id = "1042"
+    solution["status"] = "Validation Candidate"
+    solution["review_status"] = "Validation Candidate"
+    solution["praman_case_id"] = praman_case_id
+    solution["moved_to_validation_by"] = user.get("name", "Officer")
+    solution["moved_to_validation_reason"] = payload.reason
+    audit(
+        "Innovation Hub Solution Moved to Validation",
+        solution_id,
+        actor=user.get("name", "Officer"),
+        role=user.get("role", "officer"),
+        reason=f"Linked to PRAMAN Case #{praman_case_id}. {payload.reason}",
+    )
+    audit(
+        "PRAMAN Case Linked from Innovation Hub",
+        f"Case #{praman_case_id}",
+        actor=user.get("name", "Officer"),
+        role=user.get("role", "officer"),
+        reason=f"Innovation Hub solution '{solution['solution_name']}' by {solution['company']} moved into PRAMAN lifecycle.",
+    )
+    return {
+        "solution": solution,
+        "praman_case_id": praman_case_id,
+        "message": f"Solution moved to validation. Linked to PRAMAN Case #{praman_case_id}. Continue via existing PRAMAN procurement lifecycle.",
+        "next_step": "/requirements",
+        "data_class": DATA_CLASS,
+    }
+
+
+@app.get("/api/v1/innovation-hub/review-queue")
+def get_hub_review_queue(
+    user: dict = Depends(require_role("officer", "evaluator", "msins_admin")),
+) -> dict:
+    """Government review queue — all Innovation Hub solutions awaiting review."""
+    hub = STATE.get("innovation_hub", {})
+    solutions = hub.get("solutions", [])
+    # Build review queue with challenge context
+    challenges_map = {c["id"]: c for c in hub.get("challenges", [])}
+    queue = []
+    for s in solutions:
+        ch = challenges_map.get(s.get("challenge_id"), {})
+        queue.append({
+            "solution_id": s["id"],
+            "solution_name": s["solution_name"],
+            "company": s["company"],
+            "challenge_id": s.get("challenge_id"),
+            "challenge_display_id": ch.get("display_id", ""),
+            "challenge_title": ch.get("title", ""),
+            "status": s.get("status"),
+            "review_status": s.get("review_status"),
+            "shortlisted": s.get("shortlisted", False),
+            "praman_case_id": s.get("praman_case_id"),
+            "submitted_by": s.get("submitted_by"),
+            "evidence_confidence": s.get("evidence_confidence", "Pending"),
+            "data_class": DATA_CLASS,
+        })
+    return {"items": queue, "total": len(queue), "data_class": DATA_CLASS}
 
 
 reset_state()

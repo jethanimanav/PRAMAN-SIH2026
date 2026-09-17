@@ -1,80 +1,162 @@
 "use client";
 
 import { usePraman } from "@/lib/PramanContext";
-import { Panel, Info, Empty, Action } from "@/components/ui";
+import { GovPageHeader, Panel, Empty, ProcurementCaseCard, FilterToolbar, Pagination } from "@/components/ui";
 import { Badge } from "@/components/Badge";
 import { FileText, Plus, Search } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 export default function ProblemsPage() {
-  const { problem } = usePraman();
+  const router = useRouter();
+  const { problem, currentStage } = usePraman();
   const [search, setSearch] = useState("");
+  const [selectedStage, setSelectedStage] = useState("All Stages");
+  const [selectedDepartment, setSelectedDepartment] = useState("All Departments");
+  const [viewMode, setViewMode] = useState<"grid" | "list" | "table">("grid");
 
-  const problems = problem ? [problem] : [];
+  const problems = problem
+    ? [
+        {
+          id: problem.id || "1042",
+          title: problem.title || "AI Road Damage Detection for Public Transport Routes",
+          department: problem.department || "Public Works Department, Maharashtra",
+          location: problem.location || "Pune Municipal Bus Fleet",
+          narrative: problem.narrative || "Public Works Department requires an edge-AI computer vision telemetry system mounted on municipal transport buses to autonomously identify and geotag potholes and road distress.",
+          budget: problem.budget || "₹50L – ₹1Cr",
+          timeline: "90 Days Pilot",
+          domain: problem.domain || "Urban Infrastructure",
+          status: "APPROVED FOR PILOT",
+          statusTone: "green" as const,
+        },
+        {
+          id: "1043",
+          title: "IoT Water Pipeline Leakage & Contamination Telemetry",
+          department: "Water Supply & Sanitation Department",
+          location: "Nashik & Chhatrapati Sambhajinagar",
+          narrative: "Water Supply & Sanitation Department seeks an acoustic sensor & flow meter mesh network to identify underground distribution leaks and microbial contamination in secondary pipelines.",
+          budget: "₹1.2Cr – ₹2.5Cr",
+          timeline: "120 Days Pilot",
+          domain: "Sensors & Water Sanitation",
+          status: "OPEN CHALLENGE",
+          statusTone: "blue" as const,
+        },
+      ]
+    : [];
+
   const filtered = problems.filter(p =>
-    !search || p.title.toLowerCase().includes(search.toLowerCase()) || p.department.toLowerCase().includes(search.toLowerCase())
+    (!search || p.title.toLowerCase().includes(search.toLowerCase()) || p.department.toLowerCase().includes(search.toLowerCase())) &&
+    (selectedDepartment === "All Departments" || p.department.includes(selectedDepartment))
   );
 
   return (
-    <div className="space-y-5">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-widest text-[#168675]">Problem to Pilot</p>
-          <h1 className="mt-1 text-2xl font-black text-slate-900">Problems</h1>
-          <p className="mt-1 text-sm text-slate-500">Government challenges submitted for startup solution procurement</p>
-        </div>
-        <Link
-          href="/problems/intake"
-          className="inline-flex items-center gap-2 rounded-lg bg-[#168675] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#116f62] shadow-sm transition"
-        >
-          <Plus size={15} /> New Problem
-        </Link>
-      </div>
+    <div className="space-y-6 min-w-0">
+      <GovPageHeader
+        eyebrow="Government Problem to Pilot"
+        title="Active Government Challenges & Listings"
+        subtitle="Explore official government problem statements open for startup innovation, structured requirement drafting, and pilot validation."
+        actions={
+          <Link
+            href="/problems/intake"
+            className="bg-[#00008B] hover:bg-[#000070] text-white text-xs font-bold py-2 px-3.5 rounded flex items-center gap-1.5 shadow-sm transition-colors"
+          >
+            <Plus size={14} />
+            <span>Submit New Problem</span>
+          </Link>
+        }
+      />
 
-      {/* Search */}
-      <div className="relative">
-        <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-        <input
-          className="w-full rounded-lg border border-slate-200 bg-white py-2.5 pl-9 pr-4 text-sm text-slate-800 outline-none focus:border-[#168675] focus:ring-2 focus:ring-[#168675]/20 transition"
-          placeholder="Search by title, department..."
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-        />
-      </div>
+      {/* Filter and View Switcher */}
+      <FilterToolbar
+        selectedStage={selectedStage}
+        onSelectStage={setSelectedStage}
+        selectedDepartment={selectedDepartment}
+        onSelectDepartment={setSelectedDepartment}
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
+      />
 
       {filtered.length > 0 ? (
-        <div className="space-y-3">
-          {filtered.map(p => (
-            <div key={p.id} className="rounded-xl border border-slate-200 bg-white shadow-sm p-5">
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Badge tone="neutral">#{p.display_id || p.id}</Badge>
-                    <Badge tone={p.status === "Draft" ? "amber" : "signal"}>{p.status}</Badge>
-                    <Badge tone="blue">{p.domain}</Badge>
-                  </div>
-                  <h2 className="text-base font-bold text-slate-900">{p.title}</h2>
-                  <p className="text-sm text-slate-500 mt-1">{p.department} · {p.location}</p>
-                </div>
-              </div>
-              <p className="mt-3 text-sm text-slate-600 leading-relaxed line-clamp-2">{p.narrative}</p>
-              <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
-                <Info label="Budget" value={p.budget} />
-                <Info label="Timeline" value={`${p.timeline_days} days`} />
-                <Info label="Technology" value={p.technology} />
-                <Info label="Core KPI" value={p.core_kpi} />
-              </div>
-            </div>
-          ))}
-        </div>
+        viewMode === "grid" ? (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 min-w-0">
+            {filtered.map((p) => (
+              <ProcurementCaseCard
+                key={p.id}
+                status={p.status}
+                statusTone={p.statusTone}
+                valueMetric={p.budget}
+                title={p.title}
+                description={p.narrative}
+                department={p.department}
+                referenceId={`PRB-MH-2026-${p.id}`}
+                location={p.location}
+                deadline={p.timeline}
+                stage={p.id === "1042" ? "Stage 4 · Pilot & Evidence" : "Stage 0 · Problem Intake"}
+                category={p.domain}
+                estimatedBudget={p.budget}
+                primaryActionLabel={p.id === "1042" ? "View Active Workflow" : "View Challenge"}
+                onPrimaryAction={() => {
+                  if (p.id === "1042") router.push("/requirements");
+                }}
+                secondaryActionLabel="Evidence Locker"
+                onSecondaryAction={() => router.push("/evidence")}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="gov-card overflow-hidden">
+            <table className="gov-table">
+              <thead>
+                <tr>
+                  <th>Reference ID</th>
+                  <th>Challenge Title</th>
+                  <th>Department</th>
+                  <th>Location</th>
+                  <th>Budget Range</th>
+                  <th>Status</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((p) => (
+                  <tr key={p.id}>
+                    <td className="record-id font-bold">PRB-MH-2026-{p.id}</td>
+                    <td>
+                      <p className="font-bold text-[#00008B] text-xs">{p.title}</p>
+                      <p className="text-[10px] text-[#475569]">{p.domain}</p>
+                    </td>
+                    <td className="text-xs">{p.department}</td>
+                    <td className="text-xs">{p.location}</td>
+                    <td className="text-xs font-semibold">{p.budget}</td>
+                    <td>
+                      <Badge tone={p.id === "1042" ? "success" : "neutral"}>{p.status}</Badge>
+                    </td>
+                    <td>
+                      <button
+                        onClick={() => router.push(p.id === "1042" ? "/requirements" : "/problems")}
+                        className="text-xs font-bold text-[#00008B] hover:underline"
+                      >
+                        View Details →
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )
       ) : (
-        <Panel title="No Problems Found" icon={<FileText size={15} />}>
+        <Panel title="No Government Challenges Found" icon={<FileText size={14} />}>
           <Empty
-            text={search ? `No problems matching "${search}".` : "Load the Hero Scenario from the Dashboard to see Problem #1042, or create a new problem using the intake form."}
+            text={search ? `No problems matching "${search}".` : "Load the Hero Scenario from the Dashboard to see Problem #1042, or create a new challenge using the intake form."}
             action={search ? "Clear search" : "Go to Dashboard → Load Hero Scenario"}
           />
         </Panel>
+      )}
+
+      {filtered.length > 0 && (
+        <Pagination totalItems={filtered.length} pageSize={10} currentPage={1} />
       )}
     </div>
   );

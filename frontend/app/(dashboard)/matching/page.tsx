@@ -1,7 +1,7 @@
 "use client";
 
 import { usePraman } from "@/lib/PramanContext";
-import { Panel, Empty, Action, AlertBanner, kpiTrace, OfficialRecordHeader, RecordMeta } from "@/components/ui";
+import { GovPageHeader, Panel, Empty, Action, AlertBanner, kpiTrace, OfficialRecordHeader, RecordMeta } from "@/components/ui";
 import { Badge } from "@/components/Badge";
 import {
   Target, Sparkles, CheckCircle2, Users, ShieldCheck, ArrowRight,
@@ -22,32 +22,28 @@ export default function MatchingPage() {
   const canShortlist = recommendations.length > 0 && !pilot;
 
   return (
-    <div className="space-y-5">
-      {/* Header */}
-      <div>
-        <p className="text-[9px] font-bold uppercase tracking-[0.2em]" style={{ color: "var(--saffron)" }}>
-          Procurement Intelligence
-        </p>
-        <h1 className="mt-0.5 text-xl font-black" style={{ color: "var(--ink)" }}>
-          AI-Assisted Startup Evaluation
-        </h1>
-        <p className="mt-0.5 text-[11px]" style={{ color: "var(--ink-soft)" }}>
-          Eligibility checks + evidence-weighted ranking for Government Requirement REQ-MH-2026-1042
-        </p>
-      </div>
+    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+      <GovPageHeader
+        eyebrow="Procurement Intelligence"
+        title="AI-Assisted Startup Evaluation"
+        subtitle="Eligibility checks + evidence-weighted ranking for Government Requirement REQ-MH-2026-1042"
+        actions={
+          <>
+            <Action onClick={matchStartups} label="Run Eligibility & Matching" icon={<Target size={13} />}
+              disabled={!canMatch || !!recommendations.length} size="sm" />
+            <Action onClick={shortlist} label="Shortlist Top-Ranked Startup" icon={<Users size={13} />}
+              disabled={!canShortlist} muted={!canShortlist} size="sm" />
+          </>
+        }
+      />
 
       {error && <AlertBanner type="error" message={error} />}
       {loading && (
-        <div className="flex items-center gap-2 rounded border px-4 py-2.5 text-[12px]"
-          style={{ background: "var(--gov-blue-light)", borderColor: "var(--gov-blue-border)", color: "var(--gov-blue)" }}>
-          <Sparkles size={13} className="animate-pulse" />{loading}…
+        <div style={{ display: "flex", alignItems: "center", gap: 8, borderRadius: 4, padding: "10px 14px", background: "var(--gov-blue-light)", border: "1px solid var(--gov-blue-border)", borderLeft: "3px solid var(--gov-blue)" }}>
+          <Sparkles size={13} style={{ color: "var(--gov-blue)" }} className="animate-pulse" />
+          <span style={{ fontSize: "0.8rem", fontWeight: 600, color: "var(--gov-blue)" }}>{loading}…</span>
         </div>
       )}
-
-      <div className="flex flex-wrap gap-2">
-        <Action onClick={matchStartups} label="Run Eligibility & Matching" icon={<Target size={13} />} disabled={!canMatch || !!recommendations.length} />
-        <Action onClick={shortlist} label="Shortlist Top-Ranked Startup" icon={<Users size={13} />} disabled={!canShortlist} muted={!canShortlist} />
-      </div>
 
       {/* Evaluation Criteria */}
       <div className="rounded border bg-white" style={{ borderColor: "var(--line)" }}>
@@ -176,7 +172,7 @@ export default function MatchingPage() {
 
           {/* Top recommendation detail */}
           {recommendations[0] && (
-            <div className="grid lg:grid-cols-[1fr_280px] gap-4">
+            <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(280px,280px)] gap-4 min-w-0">
               {/* Eligibility checks */}
               {recommendations[0].eligibility?.checks && (
                 <div className="rounded border bg-white" style={{ borderColor: "var(--line)" }}>

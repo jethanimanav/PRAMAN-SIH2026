@@ -1,7 +1,7 @@
 "use client";
 
 import { usePraman } from "@/lib/PramanContext";
-import { Panel, AlertBanner, Action, Empty, KpiRow, OfficialRecordHeader, RecordMeta } from "@/components/ui";
+import { GovPageHeader, Panel, AlertBanner, Action, Empty, KpiRow, OfficialRecordHeader, RecordMeta } from "@/components/ui";
 import { Badge } from "@/components/Badge";
 import { TestTube2, CheckCircle2, TrendingUp, MapPin, Wallet, ArrowRight, CalendarDays } from "lucide-react";
 import { kpiTrace } from "@/components/ui";
@@ -13,17 +13,13 @@ export default function PilotsPage() {
   const timelineCompleted = pilot ? pilot.timeline.indexOf(pilot.status) : -1;
 
   return (
-    <div className="space-y-5">
-      {/* Header */}
-      <div>
-        <p className="text-[9px] font-bold uppercase tracking-[0.2em]" style={{ color: "var(--saffron)" }}>
-          Validation
-        </p>
-        <h1 className="mt-0.5 text-xl font-black" style={{ color: "var(--ink)" }}>Pilot Monitoring</h1>
-        <p className="mt-0.5 text-[11px]" style={{ color: "var(--ink-soft)" }}>
-          Controlled pilot workspace · milestone tracking · KPI performance verification
-        </p>
-      </div>
+    <div className="space-y-5 min-w-0">
+      <GovPageHeader
+        eyebrow="Validation · Pilot Sandbox"
+        title="Pilot Monitoring & Milestone Tracking"
+        subtitle="Controlled 90-day sandbox pilot workspace · telemetry collection & KPI verification"
+        recordId="PIL-MH-2026-022"
+      />
 
       {error && <AlertBanner type="error" message={error} />}
 
@@ -42,7 +38,7 @@ export default function PilotsPage() {
             <RecordMeta label="Budget" value={pilot.budget} />
           </OfficialRecordHeader>
 
-          <div className="grid gap-5 lg:grid-cols-[1fr_280px]">
+          <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(280px,280px)] gap-5 min-w-0">
             <div className="space-y-4">
               {/* Pilot Overview Card */}
               <div className="rounded border bg-white" style={{ borderColor: "var(--line)" }}>

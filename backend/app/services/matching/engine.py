@@ -84,7 +84,7 @@ def match(problem: dict, startups: list[dict]) -> dict:
     fused = rrf(bm25, dense)
     by_id = {startup["id"]: startup for startup in startups}
     results = []
-    for rank, sid in enumerate(fused, start=1):
+    for sid in fused:
         startup = by_id[sid]
         dimensions = DIMENSIONS[sid]
         eligibility = run_eligibility(startup, problem)
@@ -92,7 +92,6 @@ def match(problem: dict, startups: list[dict]) -> dict:
         results.append(
             {
                 "id": f"rec-{sid}",
-                "rank": rank,
                 "startup": startup,
                 "score": score,
                 "band": "HIGH MATCH" if score >= 90 else "GOOD MATCH",
@@ -115,4 +114,9 @@ def match(problem: dict, startups: list[dict]) -> dict:
                 "data_class": "SIMULATED",
             }
         )
+    
+    results.sort(key=lambda x: x["score"], reverse=True)
+    for index, res in enumerate(results, start=1):
+        res["rank"] = index
+        
     return {"weights": WEIGHTS, "results": results, "data_class": "SIMULATED"}

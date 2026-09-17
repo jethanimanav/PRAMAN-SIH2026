@@ -1,7 +1,7 @@
 "use client";
 
 import { usePraman } from "@/lib/PramanContext";
-import { Panel, Empty, VerificationBadge } from "@/components/ui";
+import { Panel, Empty, VerificationBadge, GovPageHeader } from "@/components/ui";
 import { Badge } from "@/components/Badge";
 import { FileCheck2, ShieldCheck, CheckCircle2, AlertTriangle, Hash } from "lucide-react";
 
@@ -94,17 +94,13 @@ export default function EvidencePage() {
   const partial  = EVIDENCE_DATA.filter(e => e.verificationLevel === "PARTIALLY VERIFIED").length;
 
   return (
-    <div className="space-y-5">
-      {/* Header */}
-      <div>
-        <p className="text-[9px] font-bold uppercase tracking-[0.2em]" style={{ color: "var(--saffron)" }}>
-          Validation · Evidence Repository
-        </p>
-        <h1 className="mt-0.5 text-xl font-black" style={{ color: "var(--ink)" }}>Evidence Locker</h1>
-        <p className="mt-0.5 text-[11px]" style={{ color: "var(--ink-soft)" }}>
-          Official evidence records supporting procurement decisions · PIL-MH-2026-022
-        </p>
-      </div>
+    <div className="space-y-5 min-w-0">
+      <GovPageHeader
+        eyebrow="Validation · Evidence Repository"
+        title="Evidence Locker"
+        subtitle="Official evidence records supporting procurement decisions · PIL-MH-2026-022"
+        recordId="EVID-MH-2026-REPO"
+      />
 
       {hasEvidence ? (
         <div className="space-y-5">

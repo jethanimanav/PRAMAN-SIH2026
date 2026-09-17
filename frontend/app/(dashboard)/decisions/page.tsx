@@ -1,7 +1,7 @@
 "use client";
 
 import { usePraman } from "@/lib/PramanContext";
-import { Panel, Empty, Action, AlertBanner } from "@/components/ui";
+import { GovPageHeader, Panel, Empty, Action, AlertBanner } from "@/components/ui";
 import { Badge } from "@/components/Badge";
 import { ShieldCheck, CheckCircle2, AlertTriangle, UserRound } from "lucide-react";
 
@@ -15,91 +15,153 @@ export default function DecisionsPage() {
   ];
 
   return (
-    <div className="space-y-5">
-      <div>
-        <p className="text-xs font-bold uppercase tracking-widest text-[#168675]">Decision</p>
-        <h1 className="mt-1 text-2xl font-black text-slate-900">Human Decision Gate</h1>
-        <p className="mt-1 text-sm text-slate-500">Final procurement decision by authorized government official</p>
-      </div>
+    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+      <GovPageHeader
+        eyebrow="Decision"
+        title="Human Decision Gate"
+        subtitle="Final procurement decision by authorized government official"
+        recordId="PRB-MH-2026-1042 · Awaiting Officer Decision"
+      />
 
       {error && <AlertBanner type="error" message={error} />}
 
       {/* Governance notice */}
-      <div className="rounded-xl border border-blue-200 bg-blue-50 px-5 py-4">
-        <div className="flex items-start gap-3">
-          <AlertTriangle size={18} className="shrink-0 text-blue-600 mt-0.5" />
-          <div>
-            <p className="text-sm font-bold text-blue-800">Decision Support Only · Not Autonomous Procurement</p>
-            <p className="text-sm text-blue-700 mt-1">
-              PRAMAN provides evidence-based decision support. The final procurement decision is made exclusively by the authorized government officer. 
-              No AI system in PRAMAN approves, rejects or bypasses government procurement policy.
-            </p>
-          </div>
+      <div
+        style={{
+          borderRadius: 4,
+          border: "1px solid var(--gov-blue-border)",
+          borderLeft: "4px solid var(--gov-blue)",
+          background: "var(--gov-blue-light)",
+          padding: "14px 16px",
+          display: "flex",
+          alignItems: "flex-start",
+          gap: 12,
+        }}
+      >
+        <AlertTriangle size={16} style={{ color: "var(--gov-blue)", flexShrink: 0, marginTop: 1 }} />
+        <div>
+          <p style={{ fontSize: "0.8rem", fontWeight: 700, color: "var(--gov-blue)", margin: "0 0 4px" }}>
+            Decision Support Only · Not Autonomous Procurement
+          </p>
+          <p style={{ fontSize: "0.75rem", color: "var(--ink-mid)", margin: 0, lineHeight: 1.6 }}>
+            PRAMAN provides evidence-based decision support. The final procurement decision is made exclusively
+            by the authorized government officer. No AI system in PRAMAN approves, rejects or bypasses government
+            procurement policy.
+          </p>
         </div>
       </div>
 
       {readiness ? (
         decision ? (
-          <div className="space-y-5">
-            <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-5">
-              <div className="flex items-center gap-3">
-                <CheckCircle2 size={28} className="text-emerald-500 shrink-0" />
+          /* Decision submitted view */
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            <div
+              style={{
+                borderRadius: 4,
+                border: "1px solid var(--success-border)",
+                borderLeft: "4px solid var(--success)",
+                background: "var(--success-light)",
+                padding: 20,
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
+                <CheckCircle2 size={26} style={{ color: "var(--success)", flexShrink: 0 }} />
                 <div>
-                  <p className="text-sm font-bold text-emerald-800">Decision Submitted Successfully</p>
-                  <p className="text-base font-black text-emerald-900 mt-0.5">{decision.status}</p>
+                  <p style={{ fontSize: "0.7rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--success)", margin: "0 0 2px" }}>
+                    Decision Submitted Successfully
+                  </p>
+                  <p style={{ fontSize: "1rem", fontWeight: 800, color: "var(--ink)", margin: 0 }}>{decision.status}</p>
                 </div>
               </div>
-              <div className="mt-4 grid gap-3 sm:grid-cols-3">
-                <div className="rounded-lg bg-white border border-emerald-100 px-3 py-2.5">
-                  <p className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">Officer</p>
-                  <p className="text-sm font-semibold text-slate-800 mt-0.5">{decision.officer_identity}</p>
-                </div>
-                <div className="rounded-lg bg-white border border-emerald-100 px-3 py-2.5">
-                  <p className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">Decision</p>
-                  <p className="text-sm font-semibold text-slate-800 mt-0.5">{decision.decision}</p>
-                </div>
-                <div className="rounded-lg bg-white border border-emerald-100 px-3 py-2.5">
-                  <p className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">Data Class</p>
-                  <p className="text-sm font-semibold text-slate-800 mt-0.5">{decision.data_class}</p>
-                </div>
+              <div style={{ display: "grid", gap: 10, gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", marginBottom: 12 }}>
+                {[
+                  ["Officer", decision.officer_identity],
+                  ["Decision", decision.decision],
+                  ["Data Class", decision.data_class],
+                ].map(([label, value]) => (
+                  <div
+                    key={label}
+                    style={{ borderRadius: 4, background: "var(--white)", border: "1px solid var(--success-border)", padding: "8px 12px" }}
+                  >
+                    <p className="gov-section-label" style={{ marginBottom: 3 }}>{label}</p>
+                    <p style={{ fontSize: "0.8rem", fontWeight: 600, color: "var(--ink)", margin: 0 }}>{value}</p>
+                  </div>
+                ))}
               </div>
-              <div className="mt-3 rounded-lg bg-white border border-emerald-100 px-3 py-2.5">
-                <p className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">Justification</p>
-                <p className="text-sm text-slate-700 mt-0.5 leading-relaxed">{decision.reason}</p>
+              <div style={{ borderRadius: 4, background: "var(--white)", border: "1px solid var(--success-border)", padding: "10px 14px" }}>
+                <p className="gov-section-label" style={{ marginBottom: 4 }}>Justification</p>
+                <p style={{ fontSize: "0.8rem", color: "var(--ink-mid)", margin: 0, lineHeight: 1.7 }}>{decision.reason}</p>
               </div>
             </div>
           </div>
         ) : (
-          <div className="grid gap-5 lg:grid-cols-[1fr_320px]">
-            <Panel title="Officer Decision" icon={<UserRound size={15} />}>
+          /* Decision input form */
+          <div style={{ display: "grid", gap: 20, gridTemplateColumns: "1fr 300px" }} className="max-lg:!grid-cols-1 min-w-0">
+            <Panel title="Officer Decision" icon={<UserRound size={14} />}>
               {/* Readiness summary */}
-              <div className="mb-5 flex items-center gap-4 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
-                <div className="text-center">
-                  <p className="text-3xl font-black text-[#168675]">{readiness.score}</p>
-                  <p className="text-[10px] text-slate-400 font-bold uppercase">/100 Readiness</p>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 16,
+                  borderRadius: 4,
+                  border: "1px solid var(--line)",
+                  background: "var(--mist)",
+                  padding: "12px 16px",
+                  marginBottom: 20,
+                }}
+              >
+                <div style={{ textAlign: "center", flexShrink: 0 }}>
+                  <p style={{ fontSize: "2rem", fontWeight: 900, color: "var(--gov-blue)", margin: 0, lineHeight: 1 }}>
+                    {readiness.score}
+                  </p>
+                  <p className="gov-section-label" style={{ marginTop: 4 }}>/100 Readiness</p>
                 </div>
-                <div className="border-l border-slate-200 pl-4">
-                  <Badge tone="signal">{readiness.band}</Badge>
-                  <p className="text-xs text-slate-600 mt-1">Based on pilot evidence for Problem #1042<br />SkylineAI Solutions · AI Road Damage Detection</p>
+                <div style={{ borderLeft: "1px solid var(--line)", paddingLeft: 16 }}>
+                  <Badge tone="success">{readiness.band}</Badge>
+                  <p style={{ fontSize: "0.7rem", color: "var(--ink-soft)", margin: "6px 0 0", lineHeight: 1.5 }}>
+                    Based on pilot evidence for Problem #1042
+                    <br />SkylineAI Solutions · AI Road Damage Detection
+                  </p>
                 </div>
               </div>
 
-              <div className="space-y-4">
+              <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                 <div>
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-2">Decision</label>
-                  <div className="space-y-2">
+                  <label className="gov-input-label">Decision</label>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                     {DECISION_OPTIONS.map(opt => (
-                      <label key={opt.value} className="flex cursor-pointer items-start gap-3 rounded-lg border border-slate-200 px-4 py-3 hover:border-[#168675] hover:bg-emerald-50 transition has-[:checked]:border-[#168675] has-[:checked]:bg-emerald-50">
+                      <label
+                        key={opt.value}
+                        style={{
+                          display: "flex",
+                          alignItems: "flex-start",
+                          gap: 12,
+                          borderRadius: 4,
+                          border: "1.5px solid var(--line)",
+                          padding: "10px 14px",
+                          cursor: "pointer",
+                          transition: "border-color 0.15s, background 0.15s",
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.borderColor = "var(--gov-blue-border)";
+                          e.currentTarget.style.background = "var(--gov-blue-light)";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.borderColor = "var(--line)";
+                          e.currentTarget.style.background = "transparent";
+                        }}
+                      >
                         <input
                           type="radio"
                           name="decision"
                           value={opt.value}
                           defaultChecked={opt.value === "Proceed to Procurement Review"}
-                          className="mt-0.5 accent-[#168675]"
+                          style={{ marginTop: 2, accentColor: "var(--gov-blue)" }}
                         />
                         <div>
-                          <p className="text-sm font-semibold text-slate-800">{opt.label}</p>
-                          <p className="text-xs text-slate-500 mt-0.5">{opt.tone}</p>
+                          <p style={{ fontSize: "0.8rem", fontWeight: 600, color: "var(--ink)", margin: 0 }}>{opt.label}</p>
+                          <p style={{ fontSize: "0.65rem", color: "var(--ink-soft)", margin: "2px 0 0" }}>{opt.tone}</p>
                         </div>
                       </label>
                     ))}
@@ -107,14 +169,37 @@ export default function DecisionsPage() {
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-2">
-                    Officer Justification <span className="text-red-500">*</span>
+                  <label className="gov-input-label">
+                    Officer Justification <span style={{ color: "var(--critical)" }}>*</span>
                   </label>
                   <textarea
-                    className="w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-800 outline-none focus:border-[#168675] focus:bg-white focus:ring-2 focus:ring-[#168675]/20 transition min-h-[100px]"
+                    style={{
+                      width: "100%",
+                      borderRadius: 4,
+                      border: "1.5px solid var(--line)",
+                      background: "var(--white)",
+                      padding: "10px 14px",
+                      fontSize: "0.8rem",
+                      color: "var(--ink)",
+                      outline: "none",
+                      minHeight: 100,
+                      resize: "vertical",
+                      boxSizing: "border-box",
+                      fontFamily: "inherit",
+                      lineHeight: 1.6,
+                      transition: "border-color 0.15s, box-shadow 0.15s",
+                    }}
                     value={decisionReason}
                     onChange={e => setDecisionReason(e.target.value)}
                     placeholder="Provide your decision justification..."
+                    onFocus={(e) => {
+                      e.currentTarget.style.borderColor = "var(--gov-blue)";
+                      e.currentTarget.style.boxShadow = "0 0 0 3px rgba(26,58,92,0.08)";
+                    }}
+                    onBlur={(e) => {
+                      e.currentTarget.style.borderColor = "var(--line)";
+                      e.currentTarget.style.boxShadow = "none";
+                    }}
                   />
                 </div>
 
@@ -127,41 +212,70 @@ export default function DecisionsPage() {
               </div>
             </Panel>
 
-            <div className="space-y-5">
-              <Panel title="PRAMAN AI Recommendation" icon={<ShieldCheck size={15} />}>
-                <div className="rounded-lg bg-emerald-50 border border-emerald-200 px-4 py-3">
-                  <p className="text-xs font-bold uppercase tracking-wider text-emerald-600 mb-1">AI Suggests</p>
-                  <p className="text-sm font-bold text-emerald-800">Proceed to Procurement Review</p>
-                  <p className="text-xs text-emerald-600 mt-1">Readiness score {readiness.score}/100 with {readiness.band} band. Security blocker identified — officer review recommended.</p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              <Panel title="PRAMAN AI Recommendation" icon={<ShieldCheck size={14} />}>
+                <div
+                  style={{
+                    borderRadius: 4,
+                    background: "var(--gov-blue-light)",
+                    border: "1px solid var(--gov-blue-border)",
+                    padding: "12px 14px",
+                    marginBottom: 10,
+                  }}
+                >
+                  <p className="gov-section-label" style={{ color: "var(--gov-blue)", marginBottom: 4 }}>AI Suggests</p>
+                  <p style={{ fontSize: "0.8rem", fontWeight: 700, color: "var(--gov-blue)", margin: 0 }}>
+                    Proceed to Procurement Review
+                  </p>
+                  <p style={{ fontSize: "0.7rem", color: "var(--ink-mid)", margin: "6px 0 0", lineHeight: 1.5 }}>
+                    Readiness score {readiness.score}/100 with {readiness.band} band. Security blocker identified — officer review recommended.
+                  </p>
                 </div>
-                <div className="mt-3 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2.5 text-xs text-amber-700">
+                <div
+                  style={{
+                    borderRadius: 4,
+                    background: "var(--warning-light)",
+                    border: "1px solid var(--warning-border)",
+                    padding: "8px 12px",
+                    fontSize: "0.7rem",
+                    color: "var(--warning)",
+                  }}
+                >
                   <strong>Blocker:</strong> {readiness.blocker}
                 </div>
               </Panel>
 
-              <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                <p className="text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">Checklist</p>
-                {[
-                  { label: "Pilot KPIs verified", done: true },
-                  { label: "Evidence locker reviewed", done: true },
-                  { label: "Readiness calculated", done: !!readiness },
-                  { label: "Security review (partial)", done: false },
-                  { label: "Officer justification", done: decisionReason.trim().length > 20 },
-                ].map(item => (
-                  <div key={item.label} className="flex items-center gap-2 py-1.5">
-                    {item.done
-                      ? <CheckCircle2 size={14} className="text-emerald-500 shrink-0" />
-                      : <div className="h-3.5 w-3.5 rounded-full border-2 border-slate-300 shrink-0" />
-                    }
-                    <span className={`text-sm ${item.done ? "text-slate-700" : "text-slate-400"}`}>{item.label}</span>
-                  </div>
-                ))}
+              <div className="gov-card">
+                <div className="gov-card-header">
+                  <h2 style={{ fontSize: "0.7rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--ink-mid)", margin: 0 }}>
+                    Pre-Decision Checklist
+                  </h2>
+                </div>
+                <div style={{ padding: "10px 16px" }}>
+                  {[
+                    { label: "Pilot KPIs verified", done: true },
+                    { label: "Evidence locker reviewed", done: true },
+                    { label: "Readiness calculated", done: !!readiness },
+                    { label: "Security review (partial)", done: false },
+                    { label: "Officer justification", done: decisionReason.trim().length > 20 },
+                  ].map(item => (
+                    <div key={item.label} style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 0", borderBottom: "1px solid var(--line)" }}>
+                      {item.done
+                        ? <CheckCircle2 size={14} style={{ color: "var(--success)", flexShrink: 0 }} />
+                        : <div style={{ width: 14, height: 14, borderRadius: "50%", border: "2px solid var(--line)", flexShrink: 0 }} />
+                      }
+                      <span style={{ fontSize: "0.8rem", color: item.done ? "var(--ink)" : "var(--ink-muted)" }}>
+                        {item.label}
+                      </span>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
         )
       ) : (
-        <Panel title="Human Decision Gate" icon={<ShieldCheck size={15} />}>
+        <Panel title="Human Decision Gate" icon={<ShieldCheck size={14} />}>
           <Empty
             text="Procurement Readiness must be calculated before the officer decision gate becomes available."
             action="Go to Procurement Readiness"

@@ -5,6 +5,8 @@ import { Panel, Action, AlertBanner } from "@/components/ui";
 import { ClipboardList, Save, Send, ChevronDown } from "lucide-react";
 import { useRouter } from "next/navigation";
 
+import { api } from "@/lib/api";
+
 const DEPARTMENTS = [
   "Urban Development / PWD",
   "Health & Family Welfare",
@@ -42,13 +44,27 @@ export default function IntakePage() {
     constraint: "",
   });
 
+  const [submitting, setSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
+
   const update = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
     setForm(f => ({ ...f, [k]: e.target.value }));
 
-  function handleSubmit() {
+  async function handleSubmit() {
     if (!form.title || !form.department || !form.narrative) return;
-    setSubmitted(true);
-    setTimeout(() => router.push("/problems"), 1500);
+    setSubmitting(true);
+    setErrorMsg("");
+    try {
+      await api("/api/v1/problems", {
+        method: "POST",
+        body: JSON.stringify(form),
+      });
+      setSubmitted(true);
+      setTimeout(() => router.push("/problems"), 1500);
+    } catch (err: any) {
+      setErrorMsg(err.message || "Failed to submit problem");
+      setSubmitting(false);
+    }
   }
 
   if (submitted) {
@@ -74,7 +90,7 @@ export default function IntakePage() {
         <p className="mt-1 text-sm text-slate-500">Submit a new government challenge to the PRAMAN system</p>
       </div>
 
-      <div className="grid gap-5 lg:grid-cols-[1fr_320px]">
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(280px,320px)] gap-5 min-w-0">
         <div className="space-y-5">
           <Panel title="Problem Details" icon={<ClipboardList size={15} />}>
             <div className="space-y-4">

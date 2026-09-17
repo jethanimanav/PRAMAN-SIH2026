@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { usePraman } from "@/lib/PramanContext";
 import { AlertBanner, Empty, Panel, Action } from "@/components/ui";
 import {
@@ -12,26 +13,49 @@ import {
   MessageSquarePlus,
   CheckCircle2,
   Clock,
+  X,
 } from "lucide-react";
+import { api } from "@/lib/api";
 
 import type { LessonLearned } from "@/types/praman";
 
 export default function LessonsPage() {
-  const { lessons, error } = usePraman();
+  const { lessons, error, loadAllModuleData } = usePraman();
+  const [showModal, setShowModal] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [form, setForm] = useState({
+    category: "Technical",
+    lesson: "",
+    what_worked: "",
+    what_failed: "",
+    recommendation: "",
+    reuse_recommended: true,
+  });
 
-  if (!lessons || lessons.length === 0) {
-    return (
-      <div className="space-y-5">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-widest text-[#168675]">Post-Procurement</p>
-          <h1 className="mt-1 text-2xl font-black text-slate-900">Lessons Learned</h1>
-        </div>
-        <Panel title="Project Retrospective">
-          <Empty text="No lessons learned have been recorded yet." action="Record a Lesson" />
-        </Panel>
-      </div>
-    );
-  }
+  const handleRecordLesson = async () => {
+    if (!form.lesson.trim() || !form.recommendation.trim()) return;
+    setSubmitting(true);
+    try {
+      await api("/api/v1/lessons/1042", {
+        method: "POST",
+        body: JSON.stringify(form),
+      });
+      setShowModal(false);
+      setForm({
+        category: "Technical",
+        lesson: "",
+        what_worked: "",
+        what_failed: "",
+        recommendation: "",
+        reuse_recommended: true,
+      });
+      await loadAllModuleData();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   const getCategoryIcon = (category: string) => {
     switch (category) {
@@ -62,11 +86,94 @@ export default function LessonsPage() {
           <p className="mt-1 text-sm text-slate-500">Structured retrospective data used to train the PRAMAN matching AI.</p>
         </div>
         <div>
-          <button className="inline-flex items-center gap-2 rounded-lg bg-[#168675] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#126b5d]">
+          <button
+            onClick={() => setShowModal(true)}
+            className="inline-flex items-center gap-2 rounded-lg bg-[#168675] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#126b5d]"
+          >
             <MessageSquarePlus size={16} /> Record Lesson
           </button>
         </div>
       </div>
+
+      {showModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-lg rounded-xl border border-slate-200 bg-white p-6 shadow-xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h2 className="text-lg font-black text-slate-900">Record Lesson Learned</h2>
+              <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-slate-600">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-bold uppercase text-slate-500 mb-1">Category</label>
+                <select
+                  value={form.category}
+                  onChange={(e) => setForm({ ...form, category: e.target.value })}
+                  className="w-full rounded-lg border border-slate-200 bg-slate-50 p-2.5 text-sm outline-none focus:border-[#168675]"
+                >
+                  <option>Technical</option>
+                  <option>Integration</option>
+                  <option>Operational</option>
+                  <option>Governance</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-bold uppercase text-slate-500 mb-1">Core Lesson Summary *</label>
+                <textarea
+                  value={form.lesson}
+                  onChange={(e) => setForm({ ...form, lesson: e.target.value })}
+                  rows={2}
+                  className="w-full rounded-lg border border-slate-200 bg-slate-50 p-2.5 text-sm outline-none focus:border-[#168675]"
+                  placeholder="Describe the key retrospective insight..."
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold uppercase text-slate-500 mb-1">What Worked</label>
+                <input
+                  type="text"
+                  value={form.what_worked}
+                  onChange={(e) => setForm({ ...form, what_worked: e.target.value })}
+                  className="w-full rounded-lg border border-slate-200 bg-slate-50 p-2.5 text-sm outline-none focus:border-[#168675]"
+                  placeholder="Successful aspect..."
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold uppercase text-slate-500 mb-1">What Failed / Bottleneck</label>
+                <input
+                  type="text"
+                  value={form.what_failed}
+                  onChange={(e) => setForm({ ...form, what_failed: e.target.value })}
+                  className="w-full rounded-lg border border-slate-200 bg-slate-50 p-2.5 text-sm outline-none focus:border-[#168675]"
+                  placeholder="Failure or bottleneck..."
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold uppercase text-slate-500 mb-1">Actionable Recommendation *</label>
+                <textarea
+                  value={form.recommendation}
+                  onChange={(e) => setForm({ ...form, recommendation: e.target.value })}
+                  rows={2}
+                  className="w-full rounded-lg border border-slate-200 bg-slate-50 p-2.5 text-sm outline-none focus:border-[#168675]"
+                  placeholder="Policy or process recommendation for future projects..."
+                />
+              </div>
+            </div>
+            <div className="flex justify-end gap-3 pt-3 border-t border-slate-100">
+              <button onClick={() => setShowModal(false)} className="px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-100 rounded-lg">
+                Cancel
+              </button>
+              <button
+                onClick={handleRecordLesson}
+                disabled={submitting || !form.lesson.trim() || !form.recommendation.trim()}
+                className="px-4 py-2 text-sm font-bold text-white bg-[#168675] hover:bg-[#126b5d] disabled:opacity-50 rounded-lg"
+              >
+                {submitting ? "Saving..." : "Save Lesson"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {error && <AlertBanner type="error" message={error} />}
 
@@ -135,3 +242,4 @@ export default function LessonsPage() {
     </div>
   );
 }
+

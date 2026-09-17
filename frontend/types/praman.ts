@@ -282,3 +282,88 @@ export type ModelVersion = {
   outcomes_included: number;
   data_class: DataClass;
 };
+
+// ─── Innovation Hub ─────────────────────────────────────────────────────────
+
+export type HubChallengeStage = "DISCOVER" | "VALIDATE" | "DECIDE" | "SCALE";
+export type HubUrgency = "Low" | "Medium" | "High" | "Critical";
+
+export type HubChallenge = {
+  id: string;
+  display_id: string;
+  title: string;
+  department: string;
+  location: string;
+  domain: string;
+  technology: string;
+  status: string;
+  stage: HubChallengeStage;
+  urgency: HubUrgency;
+  budget: string;
+  submission_count: number;
+  days_remaining: number;
+  description: string;
+  context: string;
+  affected_area: string;
+  current_process: string;
+  current_limitations: string;
+  expected_impact: string;
+  functional_requirements: string[];
+  technical_requirements: string[];
+  kpis: Array<{ name: string; target: string }>;
+  constraints: string[];
+  deployment: string;
+  integration: string;
+  eligible_categories: string[];
+  timeline: string;
+  data_class: DataClass;
+};
+
+export type HubSolution = {
+  id: string;
+  challenge_id: string;
+  challenge_title: string;
+  challenge_display_id: string;
+  solution_name: string;
+  company: string;
+  category: string;
+  short_description: string;
+  technical_capabilities: string;
+  technology_stack: string;
+  deployment_model: string;
+  previous_deployments?: string;
+  government_experience?: string;
+  evidence_summary?: string;
+  evidence_validation: string;
+  evidence_confidence: string;
+  implementation_timeline?: string;
+  contact_email?: string;
+  submitted_by: string;
+  submitted_by_id: string;
+  status: string;
+  review_status: string;
+  shortlisted: boolean;
+  shortlist_reason?: string;
+  shortlisted_by?: string;
+  praman_case_id: string | null;
+  moved_to_validation_by?: string;
+  moved_to_validation_reason?: string;
+  data_class: DataClass;
+};
+
+export type HubReviewQueueItem = {
+  solution_id: string;
+  solution_name: string;
+  company: string;
+  challenge_id: string;
+  challenge_display_id: string;
+  challenge_title: string;
+  status: string;
+  review_status: string;
+  shortlisted: boolean;
+  praman_case_id: string | null;
+  submitted_by: string;
+  evidence_confidence: string;
+  data_class: DataClass;
+};
+
